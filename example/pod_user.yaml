@@ -1,0 +1,27 @@
+pod_user:
+  engine: mysql
+  tb: pod_user
+  db: pod
+  comment: 我是无辜的测试表
+  fields:
+    - id: i64
+      __auto_incr: true
+    - nickname: str
+      __size: 16
+      __nullable: false
+      __comment: 昵称，非姓名
+    - password: str
+      __size: 16
+      __nullable: false
+    - mobile_phone: str
+      __size: 18
+      __nullable: false
+      __comment: 手机号
+    - create_dt: timestamp
+      __nullable: false
+    - update_dt: timestamp
+      __nullable: false
+      __comment: 更新时间
+  pk: id
+  uniques: [[nickname], [mobile_phone]]
+  indexes: [[create_dt], [update_dt]]
