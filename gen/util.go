@@ -13,14 +13,12 @@ const (
 
 func TypeName(in string) string {
 	switch in {
-	case parse.I64:
+	case parse.I64, parse.Timestamp:
 		return I64
 	case parse.I32:
 		return "int32"
 	case parse.Str:
 		return "string"
-	case parse.Timestamp:
-		return "*time.Time"
 	}
 	return in
 }

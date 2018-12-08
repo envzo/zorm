@@ -12,11 +12,10 @@ func genORM(pkg string, d *parse.Def) []byte {
 
 	b.WL(`import (`)
 	b.WL(`"database/sql"`)
-	b.WL2(`"time"`)
 	b.WL(`"github.com/envzo/zorm/db"`)
 	b.WL2(`)`)
 
-	b.W("var _ = time.Time{}").Ln2()
+	b.WL2(`var _ = sql.ErrNoRows`)
 
 	bt = ToCamel(d.TB)
 
@@ -205,15 +204,11 @@ func genFindOne(fields []*Field, db, tb string, b *B, args []string) {
 	b.W("return nil, err")
 	b.WL2("}")
 
-	b.WL("data := ", bt, "{")
+	b.WL("d := ", bt, "{")
 	for _, f := range fields {
-		if f.OriginT == parse.Timestamp {
-			continue
-		}
-
 		b.W(f.Camel, ":", vm[f.Camel])
 		switch f.OriginT {
-		case parse.I64:
+		case parse.I64, parse.Timestamp:
 			b.W(".Int64")
 		case parse.Str:
 			b.W(".String")
@@ -223,22 +218,7 @@ func genFindOne(fields []*Field, db, tb string, b *B, args []string) {
 	}
 	b.WL2("}")
 
-	// convert timestamp to time
-	ok := true
-	for _, f := range fields {
-		if f.OriginT != parse.Timestamp {
-			continue
-		}
-		b.W("t")
-		if ok {
-			b.W(":")
-			ok = false
-		}
-		b.WL("=time.Unix(", vm[f.Camel], ".Int64, 0)")
-		b.WL("data.", f.Camel, "=&t")
-	}
-
-	b.W("return &data, nil")
+	b.W("return &d, nil")
 
 	b.WL2("}")
 }

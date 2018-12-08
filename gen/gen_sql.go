@@ -53,7 +53,7 @@ func genSql(d *parse.Def) string {
 	appendIndex(b, d, true)
 	appendIndex(b, d, false)
 
-	b.Ln().W(") engine=InnoDB default charset=utf8")
+	b.Ln().W(") engine=InnoDB default charset=utf8mb4")
 	b.WL(" comment '", d.Comment, "';")
 
 	return b.String()

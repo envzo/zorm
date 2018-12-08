@@ -2,20 +2,16 @@ package orm
 
 import (
 	"database/sql"
-	"time"
-
 	"github.com/envzo/zorm/db"
 )
-
-var _ = time.Time{}
 
 type PodUser struct {
 	Id          int64
 	Nickname    string
 	Password    string
 	MobilePhone string
-	CreateDt    *time.Time
-	UpdateDt    *time.Time
+	CreateDt    int64
+	UpdateDt    int64
 }
 
 func NewPodUser() *PodUser {
@@ -53,18 +49,16 @@ func (mgr *_PodUserMgr) FindOneByNickname(nickname string) (*PodUser, error) {
 		return nil, err
 	}
 
-	data := PodUser{
+	d := PodUser{
 		Id:          id.Int64,
 		Nickname:    nickname_1.String,
 		Password:    password.String,
 		MobilePhone: mobilePhone.String,
+		CreateDt:    createDt.Int64,
+		UpdateDt:    updateDt.Int64,
 	}
 
-	t := time.Unix(createDt.Int64, 0)
-	data.CreateDt = &t
-	t = time.Unix(updateDt.Int64, 0)
-	data.UpdateDt = &t
-	return &data, nil
+	return &d, nil
 }
 
 func (mgr *_PodUserMgr) IsMobilePhoneExists(mobilePhone string) (bool, error) {
@@ -94,18 +88,16 @@ func (mgr *_PodUserMgr) FindOneByMobilePhone(mobilePhone string) (*PodUser, erro
 		return nil, err
 	}
 
-	data := PodUser{
+	d := PodUser{
 		Id:          id.Int64,
 		Nickname:    nickname.String,
 		Password:    password.String,
 		MobilePhone: mobilePhone_1.String,
+		CreateDt:    createDt.Int64,
+		UpdateDt:    updateDt.Int64,
 	}
 
-	t := time.Unix(createDt.Int64, 0)
-	data.CreateDt = &t
-	t = time.Unix(updateDt.Int64, 0)
-	data.UpdateDt = &t
-	return &data, nil
+	return &d, nil
 }
 
 func (mgr *_PodUserMgr) Create(d *PodUser) error {
