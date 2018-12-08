@@ -5,6 +5,8 @@ import (
 	"github.com/envzo/zorm/db"
 )
 
+var _ = sql.ErrNoRows
+
 type PodUser struct {
 	Id          int64
 	Nickname    string
@@ -34,7 +36,7 @@ func (mgr *_PodUserMgr) IsNicknameExists(nickname string) (bool, error) {
 	return c.Int64 > 0, nil
 }
 
-func (mgr *_PodUserMgr) FindOneByNickname(nickname string) (*PodUser, error) {
+func (mgr *_PodUserMgr) UniFindOneByNickname(nickname string) (*PodUser, error) {
 	row := db.DB().QueryRow(`select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where nickname=?`,
 		nickname)
 
@@ -73,7 +75,7 @@ func (mgr *_PodUserMgr) IsMobilePhoneExists(mobilePhone string) (bool, error) {
 	return c.Int64 > 0, nil
 }
 
-func (mgr *_PodUserMgr) FindOneByMobilePhone(mobilePhone string) (*PodUser, error) {
+func (mgr *_PodUserMgr) UniFindOneByMobilePhone(mobilePhone string) (*PodUser, error) {
 	row := db.DB().QueryRow(`select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where mobile_phone=?`,
 		mobilePhone)
 
@@ -97,6 +99,178 @@ func (mgr *_PodUserMgr) FindOneByMobilePhone(mobilePhone string) (*PodUser, erro
 		UpdateDt:    updateDt.Int64,
 	}
 
+	return &d, nil
+}
+
+func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order ...string) ([]*PodUser, error) {
+	query := `select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where create_dt=?`
+	for i, o := range order {
+		if i == 0 {
+			query += " order by "
+		} else {
+			query += ", "
+		}
+		query += o[1:]
+		if o[0] == '-' {
+			query += " desc"
+		}
+	}
+
+	rows, err := db.DB().Query(query, createDt)
+	if err != nil {
+		return nil, err
+	}
+
+	var id sql.NullInt64
+	var nickname sql.NullString
+	var password sql.NullString
+	var mobilePhone sql.NullString
+	var createDt_1 sql.NullInt64
+	var updateDt sql.NullInt64
+
+	var ret []*PodUser
+
+	for rows.Next() {
+		if err = rows.Scan(&id, &nickname, &password, &mobilePhone, &createDt_1, &updateDt); err != nil {
+			return nil, err
+		}
+
+		d := PodUser{
+			Id:          id.Int64,
+			Nickname:    nickname.String,
+			Password:    password.String,
+			MobilePhone: mobilePhone.String,
+			CreateDt:    createDt_1.Int64,
+			UpdateDt:    updateDt.Int64,
+		}
+		ret = append(ret, &d)
+	}
+	return ret, nil
+}
+
+func (mgr *_PodUserMgr) FindOneByCreateDt(createDt int64, order ...string) (*PodUser, error) {
+	query := `select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where create_dt=?`
+	for i, o := range order {
+		if i == 0 {
+			query += " order by "
+		} else {
+			query += ", "
+		}
+		query += o[1:]
+		if o[0] == '-' {
+			query += " desc"
+		}
+	}
+
+	query += " limit 0, 1"
+
+	row := db.DB().QueryRow(query, createDt)
+
+	var id sql.NullInt64
+	var nickname sql.NullString
+	var password sql.NullString
+	var mobilePhone sql.NullString
+	var createDt_1 sql.NullInt64
+	var updateDt sql.NullInt64
+
+	if err := row.Scan(&id, &nickname, &password, &mobilePhone, &createDt_1, &updateDt); err != nil {
+		return nil, err
+	}
+
+	d := PodUser{
+		Id:          id.Int64,
+		Nickname:    nickname.String,
+		Password:    password.String,
+		MobilePhone: mobilePhone.String,
+		CreateDt:    createDt_1.Int64,
+		UpdateDt:    updateDt.Int64,
+	}
+	return &d, nil
+}
+
+func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order ...string) ([]*PodUser, error) {
+	query := `select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where update_dt=?`
+	for i, o := range order {
+		if i == 0 {
+			query += " order by "
+		} else {
+			query += ", "
+		}
+		query += o[1:]
+		if o[0] == '-' {
+			query += " desc"
+		}
+	}
+
+	rows, err := db.DB().Query(query, updateDt)
+	if err != nil {
+		return nil, err
+	}
+
+	var id sql.NullInt64
+	var nickname sql.NullString
+	var password sql.NullString
+	var mobilePhone sql.NullString
+	var createDt sql.NullInt64
+	var updateDt_1 sql.NullInt64
+
+	var ret []*PodUser
+
+	for rows.Next() {
+		if err = rows.Scan(&id, &nickname, &password, &mobilePhone, &createDt, &updateDt_1); err != nil {
+			return nil, err
+		}
+
+		d := PodUser{
+			Id:          id.Int64,
+			Nickname:    nickname.String,
+			Password:    password.String,
+			MobilePhone: mobilePhone.String,
+			CreateDt:    createDt.Int64,
+			UpdateDt:    updateDt_1.Int64,
+		}
+		ret = append(ret, &d)
+	}
+	return ret, nil
+}
+
+func (mgr *_PodUserMgr) FindOneByUpdateDt(updateDt int64, order ...string) (*PodUser, error) {
+	query := `select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where update_dt=?`
+	for i, o := range order {
+		if i == 0 {
+			query += " order by "
+		} else {
+			query += ", "
+		}
+		query += o[1:]
+		if o[0] == '-' {
+			query += " desc"
+		}
+	}
+
+	query += " limit 0, 1"
+
+	row := db.DB().QueryRow(query, updateDt)
+
+	var id sql.NullInt64
+	var nickname sql.NullString
+	var password sql.NullString
+	var mobilePhone sql.NullString
+	var createDt sql.NullInt64
+	var updateDt_1 sql.NullInt64
+
+	if err := row.Scan(&id, &nickname, &password, &mobilePhone, &createDt, &updateDt_1); err != nil {
+		return nil, err
+	}
+
+	d := PodUser{
+		Id:          id.Int64,
+		Nickname:    nickname.String,
+		Password:    password.String,
+		MobilePhone: mobilePhone.String,
+		CreateDt:    createDt.Int64,
+		UpdateDt:    updateDt_1.Int64,
+	}
 	return &d, nil
 }
 
