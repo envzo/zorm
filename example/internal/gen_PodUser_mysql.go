@@ -26,6 +26,18 @@ type _PodUserMgr struct{}
 
 var PodUserMgr = &_PodUserMgr{}
 
+func (mgr *_PodUserMgr) IsNicknameExists(nickname string) (bool, error) {
+	row := db.DB().QueryRow(`select count(1) from pod.pod_user where nickname=?`,
+		nickname)
+
+	var c sql.NullInt64
+
+	if err := row.Scan(&c); err != nil {
+		return false, err
+	}
+	return c.Int64 > 0, nil
+}
+
 func (mgr *_PodUserMgr) FindOneByNickname(nickname string) (*PodUser, error) {
 	row := db.DB().QueryRow(`select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where nickname=?`,
 		nickname)
@@ -53,6 +65,18 @@ func (mgr *_PodUserMgr) FindOneByNickname(nickname string) (*PodUser, error) {
 	t = time.Unix(updateDt.Int64, 0)
 	data.UpdateDt = &t
 	return &data, nil
+}
+
+func (mgr *_PodUserMgr) IsMobilePhoneExists(mobilePhone string) (bool, error) {
+	row := db.DB().QueryRow(`select count(1) from pod.pod_user where mobile_phone=?`,
+		mobilePhone)
+
+	var c sql.NullInt64
+
+	if err := row.Scan(&c); err != nil {
+		return false, err
+	}
+	return c.Int64 > 0, nil
 }
 
 func (mgr *_PodUserMgr) FindOneByMobilePhone(mobilePhone string) (*PodUser, error) {

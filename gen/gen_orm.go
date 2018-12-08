@@ -49,7 +49,8 @@ func genORM(pkg string, d *parse.Def) []byte {
 	}
 
 	for _, fs := range d.Uniques {
-		genQueryOne(fields, d.DB, d.TB, b, fs)
+		genIsExistsOne(fields, d.DB, d.TB, b, fs)
+		genFindOne(fields, d.DB, d.TB, b, fs)
 	}
 
 	genCreate(fields, d.DB, d.TB, d.PK, b).Ln()
@@ -65,7 +66,62 @@ type Field struct {
 	GoT     string
 }
 
-func genQueryOne(fields []*Field, db, tb string, b *B, args []string) {
+func genIsExistsOne(fields []*Field, db, tb string, b *B, args []string) {
+	b.W("func (mgr", " *_", bt, "Mgr) Is")
+	for _, f := range args {
+		b.W(ToCamel(f))
+	}
+	b.W("Exists(")
+
+	for i, arg := range args {
+		if i > 0 {
+			b.W(", ")
+		}
+		b.W(LowerFirstLetter(ToCamel(arg))).Spc()
+
+		// todo need refine: gather info in parse phase
+		for _, f := range fields {
+			if f.Origin == arg {
+				if f.OriginT == parse.Timestamp { // it is convenient to use integer when querying
+					b.W(I64)
+				} else {
+					b.W(f.GoT)
+				}
+				break
+			}
+		}
+	}
+	b.W(")")
+	b.Spc().W("(bool, error)").WL("{")
+
+	b.W("row := db.DB().QueryRow(`select count(1) from ", db, ".", tb, " where ")
+
+	for i, f := range args {
+		if i > 0 {
+			b.W(", ")
+		}
+		b.W(f, "=?")
+	}
+	b.WL("`, ")
+
+	for i, f := range args {
+		if i > 0 {
+			b.W(", ")
+		}
+		b.W(LowerFirstLetter(ToCamel(f))).Spc()
+	}
+	b.WL2(")")
+
+	b.WL("var c sql.NullInt64")
+	b.Ln().W("if err := row.Scan(&c); err!= nil {")
+	b.W("return false, err")
+	b.WL("}")
+	b.W("return c.Int64 > 0, nil")
+
+	b.WL2("}")
+}
+
+func genFindOne(fields []*Field, db, tb string, b *B, args []string) {
 	b.W("func (mgr", " *_", bt, "Mgr) FindOneBy")
 	for _, f := range args {
 		b.W(ToCamel(f))
