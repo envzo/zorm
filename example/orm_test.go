@@ -7,7 +7,7 @@ import (
 )
 
 func TestGen(t *testing.T) {
-	if err := gen.Gen("../example/pod_user.yaml", "../example", "orm"); err != nil {
+	if err := gen.Gen("../example/pod_user.yaml", "../example/internal", "orm"); err != nil {
 		t.Fatal(err)
 	}
 }
