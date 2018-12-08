@@ -66,6 +66,7 @@ func checkField(m yaml.MapSlice, pk string) error {
 	}
 
 	// check attributes
+	hasSize := false
 	for i, v := range m {
 		if i == 0 {
 			continue
@@ -87,12 +88,18 @@ func checkField(m yaml.MapSlice, pk string) error {
 			if _, ok := v.Value.(int); !ok {
 				return errors.New("size attribute must be integer")
 			}
+			hasSize = true
 		case Comment:
 		case Nullable:
 		default:
 			return errors.New("unknown field: " + n)
 		}
 	}
+
+	if t == Str && !hasSize {
+		return errors.New("field with str type must have size attribute")
+	}
+
 	return nil
 }
 
