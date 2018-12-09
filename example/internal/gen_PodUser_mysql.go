@@ -2,8 +2,11 @@ package orm
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/envzo/zorm/db"
 )
+
+var _ = fmt.Printf
 
 var _ = sql.ErrNoRows
 
@@ -102,7 +105,7 @@ func (mgr *_PodUserMgr) UniFindOneByMobilePhone(mobilePhone string) (*PodUser, e
 	return &d, nil
 }
 
-func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order ...string) ([]*PodUser, error) {
+func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, limit int) ([]*PodUser, error) {
 	query := `select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where create_dt=?`
 	for i, o := range order {
 		if i == 0 {
@@ -114,6 +117,9 @@ func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order ...string) ([]*PodU
 		if o[0] == '-' {
 			query += " desc"
 		}
+	}
+	if offset != -1 && limit != -1 {
+		query += fmt.Sprintf("limit %d, %d", offset, limit)
 	}
 
 	rows, err := db.DB().Query(query, createDt)
@@ -148,47 +154,7 @@ func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order ...string) ([]*PodU
 	return ret, nil
 }
 
-func (mgr *_PodUserMgr) FindOneByCreateDt(createDt int64, order ...string) (*PodUser, error) {
-	query := `select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where create_dt=?`
-	for i, o := range order {
-		if i == 0 {
-			query += " order by "
-		} else {
-			query += ", "
-		}
-		query += o[1:]
-		if o[0] == '-' {
-			query += " desc"
-		}
-	}
-
-	query += " limit 0, 1"
-
-	row := db.DB().QueryRow(query, createDt)
-
-	var id sql.NullInt64
-	var nickname sql.NullString
-	var password sql.NullString
-	var mobilePhone sql.NullString
-	var createDt_1 sql.NullInt64
-	var updateDt sql.NullInt64
-
-	if err := row.Scan(&id, &nickname, &password, &mobilePhone, &createDt_1, &updateDt); err != nil {
-		return nil, err
-	}
-
-	d := PodUser{
-		Id:          id.Int64,
-		Nickname:    nickname.String,
-		Password:    password.String,
-		MobilePhone: mobilePhone.String,
-		CreateDt:    createDt_1.Int64,
-		UpdateDt:    updateDt.Int64,
-	}
-	return &d, nil
-}
-
-func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order ...string) ([]*PodUser, error) {
+func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order []string, offset, limit int) ([]*PodUser, error) {
 	query := `select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where update_dt=?`
 	for i, o := range order {
 		if i == 0 {
@@ -200,6 +166,9 @@ func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order ...string) ([]*PodU
 		if o[0] == '-' {
 			query += " desc"
 		}
+	}
+	if offset != -1 && limit != -1 {
+		query += fmt.Sprintf("limit %d, %d", offset, limit)
 	}
 
 	rows, err := db.DB().Query(query, updateDt)
@@ -232,46 +201,6 @@ func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order ...string) ([]*PodU
 		ret = append(ret, &d)
 	}
 	return ret, nil
-}
-
-func (mgr *_PodUserMgr) FindOneByUpdateDt(updateDt int64, order ...string) (*PodUser, error) {
-	query := `select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where update_dt=?`
-	for i, o := range order {
-		if i == 0 {
-			query += " order by "
-		} else {
-			query += ", "
-		}
-		query += o[1:]
-		if o[0] == '-' {
-			query += " desc"
-		}
-	}
-
-	query += " limit 0, 1"
-
-	row := db.DB().QueryRow(query, updateDt)
-
-	var id sql.NullInt64
-	var nickname sql.NullString
-	var password sql.NullString
-	var mobilePhone sql.NullString
-	var createDt sql.NullInt64
-	var updateDt_1 sql.NullInt64
-
-	if err := row.Scan(&id, &nickname, &password, &mobilePhone, &createDt, &updateDt_1); err != nil {
-		return nil, err
-	}
-
-	d := PodUser{
-		Id:          id.Int64,
-		Nickname:    nickname.String,
-		Password:    password.String,
-		MobilePhone: mobilePhone.String,
-		CreateDt:    createDt.Int64,
-		UpdateDt:    updateDt_1.Int64,
-	}
-	return &d, nil
 }
 
 func (mgr *_PodUserMgr) Create(d *PodUser) error {

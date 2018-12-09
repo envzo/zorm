@@ -8,10 +8,12 @@ func (g *gen) genORM(pkg string) []byte {
 	g.B.W("package ", pkg).Ln2()
 
 	g.B.WL(`import (`)
+	g.B.WL(`"fmt"`)
 	g.B.WL(`"database/sql"`)
 	g.B.WL(`"github.com/envzo/zorm/db"`)
 	g.B.WL2(`)`)
 
+	g.B.WL2(`var _ = fmt.Printf`)
 	g.B.WL2(`var _ = sql.ErrNoRows`)
 
 	g.B.WL("type ", g.T, " struct {")
@@ -47,7 +49,6 @@ func (g *gen) genORM(pkg string) []byte {
 
 	for _, fs := range g.D.Indexes {
 		g.genFindByIndex(fields, fs)
-		g.genFindOneByIndex(fields, fs)
 	}
 
 	g.genCreate(fields).Ln()
@@ -329,7 +330,7 @@ func (g *gen) genFindByIndex(fields []*Field, args []string) {
 			}
 		}
 	}
-	g.B.W(", order ...string)")
+	g.B.W(", order []string, offset, limit int)")
 	g.B.Spc().W("([]*" + g.T + ", error)").WL("{")
 
 	// make query sel
@@ -358,6 +359,9 @@ func (g *gen) genFindByIndex(fields []*Field, args []string) {
 	g.B.WL("if o[0] == '-' {")
 	g.B.WL(`query += " desc"`)
 	g.B.WL("}")
+	g.B.WL("}")
+	g.B.WL("if offset != -1 && limit != -1 {")
+	g.B.WL(`query += fmt.Sprintf("limit %d, %d", offset, limit)`)
 	g.B.WL2("}")
 	// end make query sql
 
@@ -427,124 +431,6 @@ func (g *gen) genFindByIndex(fields []*Field, args []string) {
 	g.B.WL("}") // end rows loop
 
 	g.B.W("return ret, nil")
-
-	g.B.WL2("}")
-}
-
-func (g *gen) genFindOneByIndex(fields []*Field, args []string) {
-	g.B.W("func (mgr", " *_", g.T, "Mgr) FindOneBy")
-	for _, f := range args {
-		g.B.W(ToCamel(f))
-	}
-	g.B.W("(")
-
-	for i, arg := range args {
-		if i > 0 {
-			g.B.W(", ")
-		}
-		g.B.W(LowerFirstLetter(ToCamel(arg))).Spc()
-
-		// todo need refine: gather info in parse phase
-		for _, f := range fields {
-			if f.Origin == arg {
-				if f.OriginT == parse.Timestamp { // it is convenient to use integer when querying
-					g.B.W(I64)
-				} else {
-					g.B.W(f.GoT)
-				}
-				break
-			}
-		}
-	}
-	g.B.W(", order ...string)")
-	g.B.Spc().W("(*" + g.T + ", error)").WL("{")
-
-	// make query sel
-	g.B.W("query := `select ")
-	for i, f := range fields {
-		if i > 0 {
-			g.B.W(", ")
-		}
-		g.B.W(f.Origin)
-	}
-	g.B.W(" from ", g.D.DB, ".", g.D.TB, " where ")
-	for i, f := range args {
-		if i > 0 {
-			g.B.W(" and ")
-		}
-		g.B.W(f, "=?")
-	}
-	g.B.WL("`")
-	g.B.WL("for i, o := range order {")
-	g.B.WL("if i==0 {")
-	g.B.WL(`query += " order by "`)
-	g.B.WL("} else {")
-	g.B.WL(`query += ", "`)
-	g.B.WL("}")
-	g.B.WL("query += o[1:]")
-	g.B.WL("if o[0] == '-' {")
-	g.B.WL(`query += " desc"`)
-	g.B.WL("}")
-	g.B.WL2("}")
-
-	g.B.WL2(`query += " limit 0, 1"`)
-	// end make query sql
-
-	g.B.W("row := db.DB().QueryRow(query, ")
-	for i, f := range args {
-		if i > 0 {
-			g.B.W(", ")
-		}
-		g.B.W(LowerFirstLetter(ToCamel(f))).Spc()
-	}
-	g.B.WL2(")")
-
-	// temp variables
-	vm := map[string]string{}
-
-	for _, f := range fields {
-		n := LowerFirstLetter(f.Camel)
-
-		// todo need refine
-		for _, arg := range args {
-			if arg == f.Origin {
-				n += "_1"
-				break
-			}
-		}
-
-		g.B.W("var ", n)
-		vm[f.Camel] = n
-
-		g.B.Spc().WL(TmpSqlType(f.OriginT))
-	}
-
-	g.B.Ln().W("if err := row.Scan(")
-	for i, f := range fields {
-		if i > 0 {
-			g.B.W(", ")
-		}
-		g.B.W("&", vm[f.Camel])
-	}
-	g.B.W("); err!= nil {")
-	g.B.W("return nil, err")
-	g.B.WL2("}")
-
-	g.B.WL("d := ", g.T, "{")
-	for _, f := range fields {
-		g.B.W(f.Camel, ":", vm[f.Camel])
-		switch f.OriginT {
-		case parse.I64, parse.Timestamp:
-			g.B.W(".Int64")
-		case parse.Str:
-			g.B.W(".String")
-		}
-
-		g.B.WL(",")
-	}
-	g.B.WL("}")
-
-	g.B.W("return &d, nil")
 
 	g.B.WL2("}")
 }
