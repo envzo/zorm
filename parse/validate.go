@@ -66,13 +66,14 @@ func checkField(m yaml.MapSlice, pk string) error {
 	}
 
 	// check attributes
-	hasSize := false
+	hasAttr := map[string]bool{}
 	for i, v := range m {
 		if i == 0 {
 			continue
 		}
 
-		switch n := v.Key.(string); n {
+		n := v.Key.(string)
+		switch n {
 		case AutoIncr:
 			if t != I32 && t != I64 {
 				return errors.New("auto incremented field must be integer")
@@ -88,15 +89,15 @@ func checkField(m yaml.MapSlice, pk string) error {
 			if _, ok := v.Value.(int); !ok {
 				return errors.New("size attribute must be integer")
 			}
-			hasSize = true
 		case Comment:
 		case Nullable:
 		default:
 			return errors.New("unknown field: " + n)
 		}
+		hasAttr[n] = true
 	}
 
-	if t == Str && !hasSize {
+	if t == Str && !hasAttr[Size] {
 		return errors.New("field with str type must have size attribute")
 	}
 

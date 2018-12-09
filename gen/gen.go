@@ -13,9 +13,10 @@ import (
 	"github.com/envzo/zorm/parse"
 )
 
-type Data struct {
-	*parse.Def
-	Pkg string
+type gen struct {
+	T string
+	D *parse.Def
+	B *B
 }
 
 func Gen(file, folder, pkg string) error {
@@ -30,14 +31,20 @@ func Gen(file, folder, pkg string) error {
 	}
 
 	for _, def := range m {
+		g := &gen{
+			T: ToCamel(def.TB),
+			D: def,
+			B: NewB(),
+		}
+
 		// gen_<tb>_<db>.go
-		base := "gen_" + ToCamel(def.TB) + "_" + def.Engine
+		base := "gen_" + g.T + "_" + def.Engine
 
 		fn := base + ".go"
 		fn = filepath.Join(folder, fn)
 
 		fset := token.NewFileSet()
-		fileAST, err := parser.ParseFile(fset, "", genORM(pkg, def), parser.ParseComments)
+		fileAST, err := parser.ParseFile(fset, "", g.genORM(pkg), parser.ParseComments)
 		if err != nil {
 			return err
 		}
