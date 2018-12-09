@@ -8,3 +8,4 @@ ORM, defined by yaml file, generated to go code, support MySQL, MongoDB
 
 # Todo
 - 默认值
+- yaml 枚举定义
