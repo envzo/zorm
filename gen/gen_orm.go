@@ -5,7 +5,10 @@ import (
 )
 
 func (g *gen) genORM(pkg string) []byte {
-	g.B.W("package ", pkg).Ln2()
+	g.B.WL("// usage: ")
+	g.B.WL2("// FindByXXX will not return sql.ErrNoRows, so it's caller's ability to check error")
+
+	g.B.WL2("package ", pkg)
 
 	g.B.WL(`import (`)
 	g.B.WL(`"fmt"`)
@@ -361,7 +364,7 @@ func (g *gen) genFindByIndex(fields []*Field, args []string) {
 	g.B.WL("}")
 	g.B.WL("}")
 	g.B.WL("if offset != -1 && limit != -1 {")
-	g.B.WL(`query += fmt.Sprintf("limit %d, %d", offset, limit)`)
+	g.B.WL(`query += fmt.Sprintf(" limit %d, %d", offset, limit)`)
 	g.B.WL2("}")
 	// end make query sql
 
