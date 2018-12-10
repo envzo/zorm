@@ -506,10 +506,27 @@ func (g *gen) genFindByJoin(fields []*Field) {
 	g.B.WL("return nil,err")
 	g.B.WL2("}")
 
+	// temp variables
+	vm := map[string]string{}
+
+	args := map[string]bool{
+		"t":      true,
+		"on":     true,
+		"where":  true,
+		"order":  true,
+		"offset": true,
+		"limit":  true,
+	}
+
 	for _, f := range fields {
 		n := LowerFirstLetter(f.Camel)
 
+		if _, ok := args[f.Origin]; ok {
+			n += "_1"
+		}
+
 		g.B.W("var ", n)
+		vm[f.Camel] = n
 
 		g.B.Spc().WL(TmpSqlType(f.OriginT))
 	}
@@ -523,7 +540,7 @@ func (g *gen) genFindByJoin(fields []*Field) {
 		if i > 0 {
 			g.B.W(", ")
 		}
-		g.B.W("&", LowerFirstLetter(f.Camel))
+		g.B.W("&", vm[f.Camel])
 	}
 	g.B.W("); err!= nil {")
 	g.B.W("return nil, err")
