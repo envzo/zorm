@@ -502,7 +502,7 @@ func (g *gen) genFindByJoin(fields []*Field) {
 	// end make query sql
 
 	g.B.WL("rows, err := db.DB().Query(query, params...)")
-	g.B.WL("if err!=nil {")
+	g.B.WL("if err != nil {")
 	g.B.WL("return nil,err")
 	g.B.WL2("}")
 
@@ -533,7 +533,7 @@ func (g *gen) genFindByJoin(fields []*Field) {
 
 	g.B.Ln().WL2("var ret []*", g.T)
 
-	g.B.WL("for rows.Next(){")
+	g.B.WL("for rows.Next() {")
 
 	g.B.W("if err = rows.Scan(")
 	for i, f := range fields {
@@ -542,13 +542,13 @@ func (g *gen) genFindByJoin(fields []*Field) {
 		}
 		g.B.W("&", vm[f.Camel])
 	}
-	g.B.W("); err!= nil {")
+	g.B.W("); err != nil {")
 	g.B.W("return nil, err")
 	g.B.WL2("}")
 
 	g.B.WL("d := ", g.T, "{")
 	for _, f := range fields {
-		g.B.W(f.Camel, ":", LowerFirstLetter(f.Camel))
+		g.B.W(f.Camel, ":", vm[f.Camel])
 		switch f.OriginT {
 		case parse.I64, parse.Timestamp:
 			g.B.W(".Int64")
