@@ -1,3 +1,6 @@
+// usage:
+// FindByXXX will not return sql.ErrNoRows, so it's caller's ability to check error
+
 package orm
 
 import (
@@ -105,7 +108,7 @@ func (mgr *_PodUserMgr) UniFindOneByMobilePhone(mobilePhone string) (*PodUser, e
 	return &d, nil
 }
 
-func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, limit int) ([]*PodUser, error) {
+func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, limit int64) ([]*PodUser, error) {
 	query := `select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where create_dt=?`
 	for i, o := range order {
 		if i == 0 {
@@ -119,7 +122,7 @@ func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, l
 		}
 	}
 	if offset != -1 && limit != -1 {
-		query += fmt.Sprintf("limit %d, %d", offset, limit)
+		query += fmt.Sprintf(" limit %d, %d", offset, limit)
 	}
 
 	rows, err := db.DB().Query(query, createDt)
@@ -154,7 +157,20 @@ func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, l
 	return ret, nil
 }
 
-func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order []string, offset, limit int) ([]*PodUser, error) {
+func (mgr *_PodUserMgr) CountByCreateDt(createDt int64) (int64, error) {
+	query := `select count(1) from pod.pod_user where create_dt=?`
+	row := db.DB().QueryRow(query, createDt)
+
+	var c sql.NullInt64
+
+	if err := row.Scan(&c); err != nil {
+		return 0, err
+	}
+
+	return c.Int64, nil
+}
+
+func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order []string, offset, limit int64) ([]*PodUser, error) {
 	query := `select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where update_dt=?`
 	for i, o := range order {
 		if i == 0 {
@@ -168,7 +184,7 @@ func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order []string, offset, l
 		}
 	}
 	if offset != -1 && limit != -1 {
-		query += fmt.Sprintf("limit %d, %d", offset, limit)
+		query += fmt.Sprintf(" limit %d, %d", offset, limit)
 	}
 
 	rows, err := db.DB().Query(query, updateDt)
@@ -201,6 +217,19 @@ func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order []string, offset, l
 		ret = append(ret, &d)
 	}
 	return ret, nil
+}
+
+func (mgr *_PodUserMgr) CountByUpdateDt(updateDt int64) (int64, error) {
+	query := `select count(1) from pod.pod_user where update_dt=?`
+	row := db.DB().QueryRow(query, updateDt)
+
+	var c sql.NullInt64
+
+	if err := row.Scan(&c); err != nil {
+		return 0, err
+	}
+
+	return c.Int64, nil
 }
 
 func (mgr *_PodUserMgr) Create(d *PodUser) error {

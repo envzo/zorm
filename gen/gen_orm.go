@@ -52,6 +52,7 @@ func (g *gen) genORM(pkg string) []byte {
 
 	for _, fs := range g.D.Indexes {
 		g.genFindByIndex(fields, fs)
+		g.genCountByIndex(fields, fs)
 	}
 
 	g.genCreate(fields).Ln()
@@ -333,7 +334,7 @@ func (g *gen) genFindByIndex(fields []*Field, args []string) {
 			}
 		}
 	}
-	g.B.W(", order []string, offset, limit int)")
+	g.B.W(", order []string, offset, limit int64)")
 	g.B.Spc().W("([]*" + g.T + ", error)").WL("{")
 
 	// make query sel
@@ -434,6 +435,65 @@ func (g *gen) genFindByIndex(fields []*Field, args []string) {
 	g.B.WL("}") // end rows loop
 
 	g.B.W("return ret, nil")
+
+	g.B.WL2("}")
+}
+
+func (g *gen) genCountByIndex(fields []*Field, args []string) {
+	g.B.W("func (mgr", " *_", g.T, "Mgr) CountBy")
+	for _, f := range args {
+		g.B.W(ToCamel(f))
+	}
+	g.B.W("(")
+
+	for i, arg := range args {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(LowerFirstLetter(ToCamel(arg))).Spc()
+
+		// todo need refine: gather info in parse phase
+		for _, f := range fields {
+			if f.Origin == arg {
+				if f.OriginT == parse.Timestamp { // it is convenient to use integer when querying
+					g.B.W(I64)
+				} else {
+					g.B.W(f.GoT)
+				}
+				break
+			}
+		}
+	}
+	g.B.W(")")
+	g.B.Spc().W("(int64, error)").WL("{")
+
+	// make query sel
+	g.B.W("query := `select count(1) from ", g.D.DB, ".", g.D.TB, " where ")
+	for i, f := range args {
+		if i > 0 {
+			g.B.W(" and ")
+		}
+		g.B.W(f, "=?")
+	}
+	g.B.WL("`")
+	// end make query sql
+
+	g.B.W("row := db.DB().QueryRow(query, ")
+	for i, f := range args {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(LowerFirstLetter(ToCamel(f))).Spc()
+	}
+	g.B.WL(")")
+
+	g.B.Ln().WL2("var c sql.NullInt64")
+
+	g.B.W("if err := row.Scan(&c); err != nil {")
+	g.B.W("return 0, err")
+	g.B.WL2("}")
+
+	g.B.W("return c.Int64, nil")
 
 	g.B.WL2("}")
 }
