@@ -56,7 +56,10 @@ func (g *gen) genORM(pkg string) []byte {
 	}
 
 	g.genCreate(fields).Ln()
-	g.genUpdate(fields)
+
+	if g.D.PK != "" {
+		g.genUpdateByPK(fields)
+	}
 
 	return g.B.Bytes()
 }
@@ -228,7 +231,12 @@ func (g *gen) genUniFindOne(fields []*Field, args []string) {
 
 func (g *gen) genCreate(fields []*Field) *B {
 	g.B.WL("func (mgr *_", g.T, "Mgr) Create(d *", g.T, ") error {")
-	g.B.W("r,err:=db.DB().Exec(`insert into ", g.D.DB, ".", g.D.TB, " (")
+	if g.D.PK != "" {
+		g.B.W("r, err")
+	} else {
+		g.B.W("_, err")
+	}
+	g.B.W(" := db.DB().Exec(`insert into ", g.D.DB, ".", g.D.TB, " (")
 	cnt := 0
 	for i, f := range fields {
 		if f.Origin == g.D.PK {
@@ -260,17 +268,18 @@ func (g *gen) genCreate(fields []*Field) *B {
 	}
 
 	g.B.WL(")")
-	g.B.WL("if err!=nil {")
+	g.B.WL("if err != nil {")
 	g.B.WL("return err")
 	g.B.WL("}")
+
 	if g.D.PK != "" {
-		g.B.WL("id,err:=r.LastInsertId()")
+		g.B.WL("id,err := r.LastInsertId()")
 		g.B.WL("if err!=nil {")
 		g.B.WL("return err")
 		g.B.WL("}")
 		g.B.W("d.", ToCamel(g.D.PK), "=")
-		// check pk type
-		for _, f := range fields {
+
+		for _, f := range fields { // check pk type
 			if f.Origin == g.D.PK {
 				if f.OriginT == parse.I64 {
 					g.B.WL("id")
@@ -285,7 +294,7 @@ func (g *gen) genCreate(fields []*Field) *B {
 	return g.B.WL("}")
 }
 
-func (g *gen) genUpdate(fields []*Field) {
+func (g *gen) genUpdateByPK(fields []*Field) {
 	g.B.WL("func (mgr *_", g.T, "Mgr) Update(d *", g.T, ") (int64, error) {")
 	g.B.W("r,err:=db.DB().Exec(`update ", g.D.DB, ".", g.D.TB, " set ")
 	for i, f := range fields {
