@@ -55,6 +55,7 @@ func (g *gen) genORM(pkg string) []byte {
 		g.genCountByIndex(fields, fs)
 	}
 
+	g.genFindByJoin(fields)
 	g.genCreate(fields).Ln()
 
 	if g.D.PK != "" {
@@ -428,6 +429,109 @@ func (g *gen) genFindByIndex(fields []*Field, args []string) {
 	g.B.WL("d := ", g.T, "{")
 	for _, f := range fields {
 		g.B.W(f.Camel, ":", vm[f.Camel])
+		switch f.OriginT {
+		case parse.I64, parse.Timestamp:
+			g.B.W(".Int64")
+		case parse.Str:
+			g.B.W(".String")
+		}
+
+		g.B.WL(",")
+	}
+	g.B.WL("}")
+
+	g.B.WL("ret = append(ret, &d)")
+
+	g.B.WL("}") // end rows loop
+
+	g.B.W("return ret, nil")
+
+	g.B.WL2("}")
+}
+
+func (g *gen) genFindByJoin(fields []*Field) {
+	g.B.W("func (mgr", " *_", g.T, "Mgr) FindByJoin(t string, on, where []db.Rule, order []string, offset, limit int64)")
+	g.B.Spc().W("([]*" + g.T + ", error)").WL("{")
+
+	g.B.WL2("var params []interface{}")
+
+	// make query sel
+	g.B.W("query := `select ")
+	for i, f := range fields {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(f.Origin)
+	}
+	g.B.WL(" from ", g.D.DB, ".", g.D.TB, " join t on `")
+	g.B.WL(`for i, v := range on {`)
+	g.B.WL(`	if i > 0 {`)
+	g.B.WL(`		query += " and "`)
+	g.B.WL(`	}`)
+	g.B.WL(`	query += v.S`)
+	g.B.WL(`	if v.P != nil {`)
+	g.B.WL(`		params = append(params, v.P)`)
+	g.B.WL(`	}`)
+	g.B.WL(`}`)
+	g.B.WL(`for i, v := range where {`)
+	g.B.WL(`	if i == 0 {`)
+	g.B.WL(`		query += " where "`)
+	g.B.WL(`	} else if i != len(where)-1 {`)
+	g.B.WL(`		query += " and "`)
+	g.B.WL(`	}`)
+	g.B.WL(`	query += v.S`)
+	g.B.WL(`	if v.P != nil {`)
+	g.B.WL(`		params = append(params, v.P)`)
+	g.B.WL(`	}`)
+	g.B.WL(`}`)
+
+	g.B.WL("for i, o := range order {")
+	g.B.WL("if i == 0 {")
+	g.B.WL(`query += " order by "`)
+	g.B.WL("} else {")
+	g.B.WL(`query += ", "`)
+	g.B.WL("}")
+	g.B.WL("query += o[1:]")
+	g.B.WL("if o[0] == '-' {")
+	g.B.WL(`query += " desc"`)
+	g.B.WL("}")
+	g.B.WL("}")
+	g.B.WL("if offset != -1 && limit != -1 {")
+	g.B.WL(`query += fmt.Sprintf(" limit %d, %d", offset, limit)`)
+	g.B.WL2("}")
+	// end make query sql
+
+	g.B.WL("rows, err := db.DB().Query(query, params...)")
+	g.B.WL("if err!=nil {")
+	g.B.WL("return nil,err")
+	g.B.WL2("}")
+
+	for _, f := range fields {
+		n := LowerFirstLetter(f.Camel)
+
+		g.B.W("var ", n)
+
+		g.B.Spc().WL(TmpSqlType(f.OriginT))
+	}
+
+	g.B.Ln().WL2("var ret []*", g.T)
+
+	g.B.WL("for rows.Next(){")
+
+	g.B.W("if err = rows.Scan(")
+	for i, f := range fields {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W("&", LowerFirstLetter(f.Camel))
+	}
+	g.B.W("); err!= nil {")
+	g.B.W("return nil, err")
+	g.B.WL2("}")
+
+	g.B.WL("d := ", g.T, "{")
+	for _, f := range fields {
+		g.B.W(f.Camel, ":", LowerFirstLetter(f.Camel))
 		switch f.OriginT {
 		case parse.I64, parse.Timestamp:
 			g.B.W(".Int64")

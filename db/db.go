@@ -24,3 +24,8 @@ func Open(t, dsn string) error {
 }
 
 func DB() *sql.DB { return db }
+
+type Rule struct {
+	S string
+	P interface{}
+}
