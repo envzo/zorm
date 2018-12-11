@@ -42,7 +42,7 @@ func (mgr *_PodUserMgr) IsNicknameExists(nickname string) (bool, error) {
 	return c.Int64 > 0, nil
 }
 
-func (mgr *_PodUserMgr) UniFindOneByNickname(nickname string) (*PodUser, error) {
+func (mgr *_PodUserMgr) UniFindByNickname(nickname string) (*PodUser, error) {
 	row := db.DB().QueryRow(`select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where nickname=?`,
 		nickname)
 
@@ -81,7 +81,7 @@ func (mgr *_PodUserMgr) IsMobilePhoneExists(mobilePhone string) (bool, error) {
 	return c.Int64 > 0, nil
 }
 
-func (mgr *_PodUserMgr) UniFindOneByMobilePhone(mobilePhone string) (*PodUser, error) {
+func (mgr *_PodUserMgr) UniFindByMobilePhone(mobilePhone string) (*PodUser, error) {
 	row := db.DB().QueryRow(`select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where mobile_phone=?`,
 		mobilePhone)
 
@@ -314,6 +314,32 @@ func (mgr *_PodUserMgr) Create(d *PodUser) error {
 	}
 	d.Id = id
 	return nil
+}
+
+func (mgr *_PodUserMgr) UniFindByPK(id int64) (*PodUser, error) {
+	row := db.DB().QueryRow(`select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where id = ?`, id)
+
+	var id_1 sql.NullInt64
+	var nickname sql.NullString
+	var password sql.NullString
+	var mobilePhone sql.NullString
+	var createDt sql.NullInt64
+	var updateDt sql.NullInt64
+
+	if err := row.Scan(&id_1, &nickname, &password, &mobilePhone, &createDt, &updateDt); err != nil {
+		return nil, err
+	}
+
+	d := PodUser{
+		Id:          id_1.Int64,
+		Nickname:    nickname.String,
+		Password:    password.String,
+		MobilePhone: mobilePhone.String,
+		CreateDt:    createDt.Int64,
+		UpdateDt:    updateDt.Int64,
+	}
+
+	return &d, nil
 }
 
 func (mgr *_PodUserMgr) Update(d *PodUser) (int64, error) {

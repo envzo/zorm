@@ -47,7 +47,7 @@ func (g *gen) genORM(pkg string) []byte {
 
 	for _, fs := range g.D.Uniques {
 		g.genIsExistsOne(fields, fs)
-		g.genUniFindOne(fields, fs)
+		g.genUniFind(fields, fs)
 	}
 
 	for _, fs := range g.D.Indexes {
@@ -59,6 +59,7 @@ func (g *gen) genORM(pkg string) []byte {
 	g.genCreate(fields).Ln()
 
 	if g.D.PK != "" {
+		g.genUniFindByPk(fields)
 		g.genUpdateByPK(fields)
 	}
 
@@ -127,8 +128,8 @@ func (g *gen) genIsExistsOne(fields []*Field, args []string) {
 	g.B.WL2("}")
 }
 
-func (g *gen) genUniFindOne(fields []*Field, args []string) {
-	g.B.W("func (mgr", " *_", g.T, "Mgr) UniFindOneBy")
+func (g *gen) genUniFind(fields []*Field, args []string) {
+	g.B.W("func (mgr", " *_", g.T, "Mgr) UniFindBy")
 	for _, f := range args {
 		g.B.W(ToCamel(f))
 	}
@@ -293,6 +294,78 @@ func (g *gen) genCreate(fields []*Field) *B {
 	}
 	g.B.WL("return nil")
 	return g.B.WL("}")
+}
+
+func (g *gen) genUniFindByPk(fields []*Field) {
+	g.B.W("func (mgr", " *_", g.T, "Mgr) UniFindByPK(", LowerFirstLetter(ToCamel(g.D.PK)))
+
+	// todo need refine
+	for _, f := range fields {
+		if f.Origin == g.D.PK {
+			if f.OriginT == parse.Timestamp { // it is convenient to use integer when querying
+				g.B.Spc().W(I64)
+			} else {
+				g.B.Spc().W(f.GoT)
+			}
+			break
+		}
+	}
+	g.B.W(")")
+	g.B.Spc().W("(*" + g.T + ", error)").WL("{")
+
+	g.B.W("row := db.DB().QueryRow(`select ")
+	for i, f := range fields {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(f.Origin)
+	}
+	g.B.WL2(" from ", g.D.DB, ".", g.D.TB, " where ", g.D.PK, " = ?`, ", LowerFirstLetter(ToCamel(g.D.PK)), ")")
+
+	// temp variables
+	vm := map[string]string{}
+
+	for _, f := range fields {
+		n := LowerFirstLetter(f.Camel)
+
+		if f.Origin == g.D.PK {
+			n += "_1"
+		}
+
+		g.B.W("var ", n)
+		vm[f.Camel] = n
+
+		g.B.Spc().WL(TmpSqlType(f.OriginT))
+	}
+
+	g.B.Ln().W("if err := row.Scan(")
+	for i, f := range fields {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W("&", vm[f.Camel])
+	}
+	g.B.W("); err!= nil {")
+	g.B.W("return nil, err")
+	g.B.WL2("}")
+
+	g.B.WL("d := ", g.T, "{")
+	for _, f := range fields {
+		g.B.W(f.Camel, ":", vm[f.Camel])
+		switch f.OriginT {
+		case parse.I64, parse.Timestamp:
+			g.B.W(".Int64")
+		case parse.Str:
+			g.B.W(".String")
+		}
+
+		g.B.WL(",")
+	}
+	g.B.WL2("}")
+
+	g.B.W("return &d, nil")
+
+	g.B.WL2("}")
 }
 
 func (g *gen) genUpdateByPK(fields []*Field) {
