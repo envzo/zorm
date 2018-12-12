@@ -236,8 +236,22 @@ func (g *gen) genUniFind(fields []*Field, args []string) {
 }
 
 func (g *gen) genCreate(fields []*Field) *B {
+	var autoincr bool
+
+Out:
+	for _, f := range g.D.Fields {
+		if f[0].Key.(string) == g.D.PK {
+			for _, attr := range f[1:] {
+				if attr.Key == parse.AutoIncr {
+					autoincr = attr.Value.(bool)
+					break Out
+				}
+			}
+		}
+	}
+
 	g.B.WL("func (mgr *_", g.T, "Mgr) Create(d *", g.T, ") error {")
-	if g.D.PK != "" {
+	if g.D.PK != "" && autoincr {
 		g.B.W("r, err")
 	} else {
 		g.B.W("_, err")
@@ -245,7 +259,7 @@ func (g *gen) genCreate(fields []*Field) *B {
 	g.B.W(" := db.DB().Exec(`insert into ", g.D.DB, ".", g.D.TB, " (")
 	cnt := 0
 	for i, f := range fields {
-		if f.Origin == g.D.PK {
+		if f.Origin == g.D.PK && autoincr {
 			continue
 		}
 		g.B.W(f.Origin)
@@ -264,7 +278,7 @@ func (g *gen) genCreate(fields []*Field) *B {
 	g.B.W(")`,")
 
 	for i, f := range fields {
-		if f.Origin == g.D.PK {
+		if f.Origin == g.D.PK && autoincr {
 			continue
 		}
 		g.B.W("d.", f.Camel)
@@ -278,7 +292,7 @@ func (g *gen) genCreate(fields []*Field) *B {
 	g.B.WL("return err")
 	g.B.WL("}")
 
-	if g.D.PK != "" {
+	if g.D.PK != "" && autoincr {
 		g.B.WL("id,err := r.LastInsertId()")
 		g.B.WL("if err!=nil {")
 		g.B.WL("return err")
