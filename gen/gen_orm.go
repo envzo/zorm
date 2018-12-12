@@ -11,11 +11,13 @@ func (g *gen) genORM(pkg string) []byte {
 	g.B.WL2("package ", pkg)
 
 	g.B.WL(`import (`)
+	g.B.WL(`"errors"`)
 	g.B.WL(`"fmt"`)
 	g.B.WL(`"database/sql"`)
 	g.B.WL(`"github.com/envzo/zorm/db"`)
 	g.B.WL2(`)`)
 
+	g.B.WL2(`var _ = errors.New`)
 	g.B.WL2(`var _ = fmt.Printf`)
 	g.B.WL2(`var _ = sql.ErrNoRows`)
 
@@ -23,10 +25,11 @@ func (g *gen) genORM(pkg string) []byte {
 	for _, f := range g.D.Fields {
 		g.B.Tab().W(ToCamel(f[0].Key.(string))).Spc().W(TypeName(f[0].Value.(string))).Ln()
 	}
+	g.B.Ln().WL("baby bool")
 	g.B.WL("}")
 
 	g.B.WL("func New", g.T, "() *", g.T, " {")
-	g.B.WL("return &", g.T, "{}")
+	g.B.WL("return &", g.T, "{baby: true}")
 	g.B.WL("}")
 
 	g.B.WL("type _", g.T, "Mgr struct {}")
@@ -57,6 +60,7 @@ func (g *gen) genORM(pkg string) []byte {
 
 	g.genFindByJoin(fields)
 	g.genCreate(fields).Ln()
+	g.genUpsert().Ln()
 
 	if g.D.PK != "" {
 		g.genUniFindByPk(fields)
@@ -293,6 +297,20 @@ func (g *gen) genCreate(fields []*Field) *B {
 		}
 	}
 	g.B.WL("return nil")
+	return g.B.WL("}")
+}
+
+func (g *gen) genUpsert() *B {
+	g.B.WL("func (mgr *_", g.T, "Mgr) Upsert(d *", g.T, ") error {").
+		WL("if d.baby {").
+		WL("	return mgr.Create(d)").
+		WL("}")
+	if g.D.PK != "" {
+		g.B.WL("_, err := mgr.Update(d)").
+			WL("return err")
+	} else {
+		g.B.WL(`return errors.New("unimplemented upsert: maybe adding pk is a good option")`)
+	}
 	return g.B.WL("}")
 }
 

@@ -5,9 +5,12 @@ package orm
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/envzo/zorm/db"
 )
+
+var _ = errors.New
 
 var _ = fmt.Printf
 
@@ -20,10 +23,12 @@ type PodUser struct {
 	MobilePhone string
 	CreateDt    int64
 	UpdateDt    int64
+
+	baby bool
 }
 
 func NewPodUser() *PodUser {
-	return &PodUser{}
+	return &PodUser{baby: true}
 }
 
 type _PodUserMgr struct{}
@@ -314,6 +319,14 @@ func (mgr *_PodUserMgr) Create(d *PodUser) error {
 	}
 	d.Id = id
 	return nil
+}
+
+func (mgr *_PodUserMgr) Upsert(d *PodUser) error {
+	if d.baby {
+		return mgr.Create(d)
+	}
+	_, err := mgr.Update(d)
+	return err
 }
 
 func (mgr *_PodUserMgr) UniFindByPK(id int64) (*PodUser, error) {
