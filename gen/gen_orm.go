@@ -59,6 +59,7 @@ func (g *gen) genORM(pkg string) []byte {
 	}
 
 	g.genFindByJoin(fields)
+	g.genFindByCond(fields)
 	g.genCreate(fields).Ln()
 	g.genUpsert().Ln()
 
@@ -190,6 +191,10 @@ func (g *gen) genUniFind(fields []*Field, args []string) {
 
 	for _, f := range fields {
 		n := LowerFirstLetter(f.Camel)
+
+		if n == "type" {
+			n += "_"
+		}
 
 		// todo need refine
 		for _, arg := range args {
@@ -360,6 +365,10 @@ func (g *gen) genUniFindByPk(fields []*Field) {
 	for _, f := range fields {
 		n := LowerFirstLetter(f.Camel)
 
+		if n == "type" {
+			n += "_"
+		}
+
 		if f.Origin == g.D.PK {
 			n += "_1"
 		}
@@ -412,7 +421,20 @@ func (g *gen) genUpdateByPK(fields []*Field) {
 			g.B.W(", ")
 		}
 	}
-	g.B.WL(" where ", g.D.PK, "=?`, d.", ToCamel(g.D.PK), ")")
+	g.B.W(" where ", g.D.PK, "=?`, ")
+
+	// params
+	for i, f := range fields {
+		if f.Origin == g.D.PK {
+			continue
+		}
+		g.B.W("d.", f.Camel)
+		if i != len(fields)-1 {
+			g.B.W(", ")
+		}
+	}
+
+	g.B.WL(", d.", ToCamel(g.D.PK), ")")
 	g.B.WL("if err!=nil {")
 	g.B.WL("return 0, err")
 	g.B.WL("}")
@@ -501,6 +523,10 @@ func (g *gen) genFindByIndex(fields []*Field, args []string) {
 
 	for _, f := range fields {
 		n := LowerFirstLetter(f.Camel)
+
+		if n == "type" {
+			n += "_"
+		}
 
 		// todo need refine
 		for _, arg := range args {
@@ -625,6 +651,123 @@ func (g *gen) genFindByJoin(fields []*Field) {
 
 	for _, f := range fields {
 		n := LowerFirstLetter(f.Camel)
+
+		if n == "type" {
+			n += "_"
+		}
+
+		if _, ok := args[f.Origin]; ok {
+			n += "_1"
+		}
+
+		g.B.W("var ", n)
+		vm[f.Camel] = n
+
+		g.B.Spc().WL(TmpSqlType(f.OriginT))
+	}
+
+	g.B.Ln().WL2("var ret []*", g.T)
+
+	g.B.WL("for rows.Next() {")
+
+	g.B.W("if err = rows.Scan(")
+	for i, f := range fields {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W("&", vm[f.Camel])
+	}
+	g.B.W("); err != nil {")
+	g.B.W("return nil, err")
+	g.B.WL2("}")
+
+	g.B.WL("d := ", g.T, "{")
+	for _, f := range fields {
+		g.B.W(f.Camel, ":", vm[f.Camel])
+		switch f.OriginT {
+		case parse.I64, parse.Timestamp:
+			g.B.W(".Int64")
+		case parse.Str:
+			g.B.W(".String")
+		}
+
+		g.B.WL(",")
+	}
+	g.B.WL("}")
+
+	g.B.WL("ret = append(ret, &d)")
+
+	g.B.WL("}") // end rows loop
+
+	g.B.W("return ret, nil")
+
+	g.B.WL2("}")
+}
+
+func (g *gen) genFindByCond(fields []*Field) {
+	g.B.W("func (mgr", " *_", g.T, "Mgr) FindByCond(where []db.Rule, order []string, offset, limit int64)")
+	g.B.Spc().W("([]*" + g.T + ", error)").WL("{")
+
+	g.B.WL2("var params []interface{}")
+
+	// make query sel
+	g.B.W("query := `select ")
+	for i, f := range fields {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(f.Origin)
+	}
+	g.B.WL(" from ", g.D.DB, ".", g.D.TB, " where `")
+	g.B.WL(`for i, v := range where {`)
+	g.B.WL(`	if i > 0 {`)
+	g.B.WL(`		query += " and "`)
+	g.B.WL(`	}`)
+	g.B.WL(`	query += v.S`)
+	g.B.WL(`	if v.P != nil {`)
+	g.B.WL(`		params = append(params, v.P)`)
+	g.B.WL(`	}`)
+	g.B.WL(`}`)
+
+	g.B.WL("for i, o := range order {")
+	g.B.WL("if i == 0 {")
+	g.B.WL(`query += " order by "`)
+	g.B.WL("} else if i != len(order)-1 {")
+	g.B.WL(`query += ", "`)
+	g.B.WL("}")
+	g.B.WL("query += o")
+	g.B.WL("if o[0] == '-' {")
+	g.B.WL(`query += " desc"`)
+	g.B.WL("}")
+	g.B.WL("}")
+	g.B.WL("if offset != -1 && limit != -1 {")
+	g.B.WL(`query += fmt.Sprintf(" limit %d, %d", offset, limit)`)
+	g.B.WL2("}")
+	// end make query sql
+
+	g.B.WL("rows, err := db.DB().Query(query, params...)")
+	g.B.WL("if err != nil {")
+	g.B.WL("return nil,err")
+	g.B.WL2("}")
+
+	// temp variables
+	vm := map[string]string{}
+
+	args := map[string]bool{
+		"t":      true,
+		"on":     true,
+		"where":  true,
+		"order":  true,
+		"offset": true,
+		"limit":  true,
+	}
+
+	for _, f := range fields {
+		n := LowerFirstLetter(f.Camel)
+
+		if n == "type" {
+			n += "_"
+		}
 
 		if _, ok := args[f.Origin]; ok {
 			n += "_1"

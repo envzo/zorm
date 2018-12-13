@@ -308,6 +308,66 @@ func (mgr *_PodUserMgr) FindByJoin(t string, on, where []db.Rule, order []string
 	return ret, nil
 }
 
+func (mgr *_PodUserMgr) FindByCond(where []db.Rule, order []string, offset, limit int64) ([]*PodUser, error) {
+	var params []interface{}
+
+	query := `select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where `
+	for i, v := range where {
+		if i > 0 {
+			query += " and "
+		}
+		query += v.S
+		if v.P != nil {
+			params = append(params, v.P)
+		}
+	}
+	for i, o := range order {
+		if i == 0 {
+			query += " order by "
+		} else if i != len(order)-1 {
+			query += ", "
+		}
+		query += o
+		if o[0] == '-' {
+			query += " desc"
+		}
+	}
+	if offset != -1 && limit != -1 {
+		query += fmt.Sprintf(" limit %d, %d", offset, limit)
+	}
+
+	rows, err := db.DB().Query(query, params...)
+	if err != nil {
+		return nil, err
+	}
+
+	var id sql.NullInt64
+	var nickname sql.NullString
+	var password sql.NullString
+	var mobilePhone sql.NullString
+	var createDt sql.NullInt64
+	var updateDt sql.NullInt64
+
+	var ret []*PodUser
+
+	for rows.Next() {
+		if err = rows.Scan(&id, &nickname, &password, &mobilePhone, &createDt, &updateDt); err != nil {
+			return nil, err
+		}
+
+		d := PodUser{
+			Id:          id.Int64,
+			Nickname:    nickname.String,
+			Password:    password.String,
+			MobilePhone: mobilePhone.String,
+			CreateDt:    createDt.Int64,
+			UpdateDt:    updateDt.Int64,
+		}
+		ret = append(ret, &d)
+	}
+	return ret, nil
+}
+
 func (mgr *_PodUserMgr) Create(d *PodUser) error {
 	r, err := db.DB().Exec(`insert into pod.pod_user (nickname, password, mobile_phone, create_dt, update_dt) value (?,?,?,?,?)`, d.Nickname, d.Password, d.MobilePhone, d.CreateDt, d.UpdateDt)
 	if err != nil {
@@ -356,7 +416,7 @@ func (mgr *_PodUserMgr) UniFindByPK(id int64) (*PodUser, error) {
 }
 
 func (mgr *_PodUserMgr) Update(d *PodUser) (int64, error) {
-	r, err := db.DB().Exec(`update pod.pod_user set nickname=?, password=?, mobile_phone=?, create_dt=?, update_dt=? where id=?`, d.Id)
+	r, err := db.DB().Exec(`update pod.pod_user set nickname=?, password=?, mobile_phone=?, create_dt=?, update_dt=? where id=?`, d.Nickname, d.Password, d.MobilePhone, d.CreateDt, d.UpdateDt, d.Id)
 	if err != nil {
 		return 0, err
 	}
