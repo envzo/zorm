@@ -93,28 +93,61 @@ func (p *parser) parsePK() (*F, error) {
 
 	// check if exists
 
-	var item *yaml.MapItem
+	var fs yaml.MapSlice
 	for _, s := range p.d.Fields {
 		if s[0].Key.(string) == p.d.PK {
-			item = &s[0]
+			fs = s
 			break
 		}
 	}
-	if item == nil {
+	if fs == nil {
 		return nil, errors.New("primary key not found: " + p.d.PK)
 	}
 
-	t := item.Value.(string)
-	if t != util.YamlI32 && t != util.YamlI64 {
-		return nil, errors.New("primary key must be integer")
+	field := F{
+		Name:  p.d.PK,
+		Camel: util.ToCamel(p.d.PK),
 	}
 
-	return &F{
-		Name:  p.d.PK,
-		T:     t,
-		Camel: util.ToCamel(p.d.PK),
-		GoT:   util.GoT(t),
-	}, nil
+	for i, v := range fs {
+		if i == 0 {
+			t := v.Value.(string)
+			if t != util.YamlI32 && t != util.YamlI64 {
+				return nil, errors.New("primary key must be integer")
+			}
+
+			field.T = t
+			field.GoT = util.GoT(t)
+
+			continue
+		}
+
+		switch n := v.Key.(string); n {
+		case AutoIncr:
+			if field.T != util.YamlI32 && field.T != util.YamlI64 {
+				return nil, errors.New("auto incremented field must be integer")
+			}
+			field.AutoIncr = v.Value.(bool)
+		case Size:
+			if field.T != util.YamlStr {
+				return nil, errors.New("field has size must be string")
+			}
+
+			size, ok := v.Value.(int)
+			if !ok {
+				return nil, errors.New("size attribute must be integer: " + field.Name)
+			}
+			field.Size = int64(size)
+		case Comment:
+			field.Comment = v.Value.(string)
+		case Nullable:
+			field.Nullable = v.Value.(bool)
+		default:
+			return nil, errors.New("unknown attribute: " + n)
+		}
+	}
+
+	return &field, nil
 }
 
 func (p *parser) parseField(s yaml.MapSlice) (*F, error) {

@@ -866,13 +866,15 @@ func (g *gen) genCountByRule() {
 
 	// make query sel
 	g.B.WL(`var p []interface{}`)
-	g.B.WL("query := `select count(1) from ", g.x.DB, ".", g.x.TB, " where`")
+	g.B.WL("query := `select count(1) from ", g.x.DB, ".", g.x.TB, " where `")
 	g.B.WL(`for i, rule := range rules {`)
 	g.B.WL(`	if i > 0 {`)
 	g.B.WL(`		query += " and "`)
 	g.B.WL(`	}`)
 	g.B.WL(`	query += rule.S`)
-	g.B.WL(`	p = append(p, rule.P)`)
+	g.B.WL(`	if rule.P != nil {`)
+	g.B.WL(`		p = append(p, rule.P)`)
+	g.B.WL2(`	}`)
 	g.B.WL2(`}`)
 
 	// end make query sql
