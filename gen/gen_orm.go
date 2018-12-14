@@ -407,7 +407,7 @@ func (g *gen) genRmByPK() {
 
 	// params
 	g.B.WL(`for _, r := range rules {`)
-	g.B.WL(`	query += " and `, g.x.DB, `." + r.S + " = ?"`)
+	g.B.WL(`	query += " and " + `, `r.S`)
 	g.B.WL(`	p = append(p, r.P)`)
 	g.B.WL(`}`)
 

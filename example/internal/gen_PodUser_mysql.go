@@ -427,7 +427,7 @@ func (mgr *_PodUserMgr) RmByPK(pk int64, rules ...db.Rule) (int64, error) {
 	var p []interface{}
 	p = append(p, pk)
 	for _, r := range rules {
-		query += " and pod." + r.S + " = ?"
+		query += " and " + r.S
 		p = append(p, r.P)
 	}
 	r, err := db.DB().Exec(query, p...)
