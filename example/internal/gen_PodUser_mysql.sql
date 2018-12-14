@@ -1,6 +1,7 @@
 use pod;
+
 create table if not exists `pod_user` (
-  `id` bigint auto_increment,
+  `id` bigint not null auto_increment,
   `nickname` varchar(16) not null comment '昵称，非姓名',
   `password` varchar(16) not null,
   `mobile_phone` varchar(18) not null comment '手机号',

@@ -11,12 +11,13 @@ import (
 	"path/filepath"
 
 	"github.com/envzo/zorm/parse"
+	"github.com/envzo/zorm/util"
 )
 
 type gen struct {
 	T string
-	D *parse.Def
-	B *B
+	x *parse.X
+	B *Buf
 }
 
 func Gen(file, folder, pkg string) error {
@@ -25,20 +26,20 @@ func Gen(file, folder, pkg string) error {
 		return err
 	}
 
-	m, err := parse.Parse(b)
+	xs, err := parse.Parse(b)
 	if err != nil {
 		return err
 	}
 
-	for _, def := range m {
+	for _, x := range xs {
 		g := &gen{
-			T: ToCamel(def.TB),
-			D: def,
-			B: NewB(),
+			T: util.ToCamel(x.TB),
+			x: x,
+			B: NewBuf(),
 		}
 
 		// gen_<tb>_<db>.go
-		base := "gen_" + g.T + "_" + def.Engine
+		base := "gen_" + g.T + "_" + x.Engine
 
 		fn := base + ".go"
 		fn = filepath.Join(folder, fn)
@@ -64,7 +65,7 @@ func Gen(file, folder, pkg string) error {
 
 		fn = base + ".sql"
 		fn = filepath.Join(folder, fn)
-		if err = ioutil.WriteFile(fn, []byte(genSql(def)), 0644); err != nil {
+		if err = ioutil.WriteFile(fn, []byte(genSql(x)), 0644); err != nil {
 			return err
 		}
 	}

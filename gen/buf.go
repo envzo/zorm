@@ -5,40 +5,40 @@ import (
 	"strings"
 )
 
-type B struct {
+type Buf struct {
 	*bytes.Buffer
 }
 
-func NewB() *B { return &B{Buffer: new(bytes.Buffer)} }
+func NewBuf() *Buf { return &Buf{Buffer: new(bytes.Buffer)} }
 
-func (b *B) W(s ...string) *B {
+func (b *Buf) W(s ...string) *Buf {
 	_, _ = b.WriteString(strings.Join(s, ""))
 	return b
 }
 
-func (b *B) WL(s ...string) *B {
+func (b *Buf) WL(s ...string) *Buf {
 	return b.W(s...).Ln()
 }
 
-func (b *B) WL2(s ...string) *B {
+func (b *Buf) WL2(s ...string) *Buf {
 	return b.W(s...).Ln2()
 }
 
-func (b *B) Tab() *B {
+func (b *Buf) Tab() *Buf {
 	_, _ = b.WriteString("	")
 	return b
 }
 
-func (b *B) Spc() *B {
+func (b *Buf) Spc() *Buf {
 	_, _ = b.WriteString(" ")
 	return b
 }
 
-func (b *B) Ln() *B {
+func (b *Buf) Ln() *Buf {
 	_, _ = b.WriteString("\n")
 	return b
 }
 
-func (b *B) Ln2() *B {
+func (b *Buf) Ln2() *Buf {
 	return b.Ln().Ln()
 }

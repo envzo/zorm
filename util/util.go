@@ -1,35 +1,41 @@
-package gen
+package util
 
 import (
 	"strings"
 	"unicode"
-
-	"github.com/envzo/zorm/parse"
 )
 
 const (
 	I64 = "int64"
+	I32 = "int32"
+	Str = "string"
+
+	// filed types
+	YamlI32       = "i32"
+	YamlI64       = "i64"
+	YamlStr       = "str"
+	YamlTimestamp = "timestamp"
 )
 
-func TypeName(in string) string {
+func GoT(in string) string {
 	switch in {
-	case parse.I64, parse.Timestamp:
+	case YamlI64, YamlTimestamp:
 		return I64
-	case parse.I32:
-		return "int32"
-	case parse.Str:
-		return "string"
+	case YamlI32:
+		return I32
+	case YamlStr:
+		return Str
 	}
 	return in
 }
 
-func TmpSqlType(in string) string {
+func NilSqlType(in string) string {
 	switch in {
-	case parse.I64, parse.Timestamp:
+	case YamlI64, YamlTimestamp:
 		return "sql.NullInt64"
-	case parse.I32:
-		return "int32"
-	case parse.Str:
+	case YamlI32:
+		return I32
+	case YamlStr:
 		return "sql.NullString"
 	}
 	return in
@@ -37,11 +43,11 @@ func TmpSqlType(in string) string {
 
 func SqlTypeName(in string) string {
 	switch in {
-	case parse.I64, parse.Timestamp:
+	case YamlI64, YamlTimestamp:
 		return "bigint"
-	case parse.I32:
+	case YamlI32:
 		return "int"
-	case parse.Str:
+	case YamlStr:
 		return "varchar"
 	}
 	return in

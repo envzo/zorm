@@ -4,65 +4,57 @@ import (
 	"strconv"
 
 	"github.com/envzo/zorm/parse"
+	"github.com/envzo/zorm/util"
 )
 
-func genSql(d *parse.Def) string {
-	b := NewB()
+func genSql(x *parse.X) string {
+	b := NewBuf()
 
-	b.WL("use ", d.DB, ";")
-	b.W("create table if not exists `", d.TB, "` (").Ln()
-	for i, v := range d.Fields {
-		fn := v[0].Key.(string)
-		t := v[0].Value.(string)
+	b.WL2("use ", x.DB, ";")
+	b.W("create table if not exists `", x.TB, "` (").Ln()
+	for i, v := range x.Fs {
+		b.W("  `", v.Name, "` ")
+		b.W(util.SqlTypeName(v.T))
 
-		b.W("  `", fn, "` ")
-		b.W(SqlTypeName(t))
-
-		switch t {
-		case parse.Str:
-			b.W("(")
-			for _, f := range v {
-				if f.Key.(string) == parse.Size {
-					b.W(strconv.FormatInt(int64(f.Value.(int)), 10))
-				}
-			}
-			b.W(")")
+		switch v.T {
+		case util.YamlStr:
+			b.W("(", strconv.FormatInt(v.Size, 10), ")")
 		}
 
-		for _, f := range v {
-			if f.Key.(string) == parse.Nullable {
-				if !f.Value.(bool) {
-					b.W(" not null")
-				}
-			} else if f.Key.(string) == parse.AutoIncr {
-				b.W(" auto_increment")
-			} else if f.Key.(string) == parse.Comment {
-				b.W(" comment '" + f.Value.(string) + "'")
-			}
+		if !v.Nullable {
+			b.W(" not null")
 		}
 
-		if i != len(d.Fields)-1 {
+		if v.AutoIncr {
+			b.W(" auto_increment")
+		}
+
+		if v.Comment != "" {
+			b.W(" comment '" + v.Comment + "'")
+		}
+
+		if i != len(x.Fs)-1 {
 			b.W(",").Ln()
 		}
 	}
 
-	if d.PK != "" {
-		b.WL(",").W("  primary key (`", d.PK, "`)")
+	if x.PK != nil {
+		b.WL(",").W("  primary key (`", x.PK.Name, "`)")
 	}
 
-	appendIndex(b, d, true)
-	appendIndex(b, d, false)
+	genIndex(b, x, true)
+	genIndex(b, x, false)
 
 	b.Ln().W(") engine=InnoDB default charset=utf8mb4")
-	b.WL(" comment '", d.Comment, "';")
+	b.WL(" comment '", x.Comment, "';")
 
 	return b.String()
 }
 
-func appendIndex(b *B, d *parse.Def, uniq bool) {
-	indexes := d.Uniques
+func genIndex(b *Buf, x *parse.X, uniq bool) {
+	indexes := x.Uniques
 	if !uniq {
-		indexes = d.Indexes
+		indexes = x.Indexes
 	}
 
 	for i, v := range indexes {
@@ -77,7 +69,7 @@ func appendIndex(b *B, d *parse.Def, uniq bool) {
 		}
 
 		for _, index := range v {
-			b.W("_" + index)
+			b.W("_" + index.Name)
 		}
 		b.W("` (")
 
@@ -85,7 +77,7 @@ func appendIndex(b *B, d *parse.Def, uniq bool) {
 			if j != 0 {
 				b.W(", ")
 			}
-			b.W("`" + index + "`")
+			b.W("`" + index.Name + "`")
 		}
 		b.W(")")
 		if i != len(indexes)-1 {

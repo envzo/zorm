@@ -1,29 +1,208 @@
 package parse
 
 import (
+	"errors"
 	"strings"
 
 	"gopkg.in/yaml.v2"
+
+	"github.com/envzo/zorm/util"
 )
 
-func Parse(b []byte) (map[string]*Def, error) {
+func Parse(b []byte) ([]*X, error) {
 	m := map[string]*Def{}
 	if err := yaml.Unmarshal(b, &m); err != nil {
 		return nil, err
 	}
 
-	for name, v := range m {
-		// pre repair data
+	r := make([]*X, 0, len(m))
 
-		m[name].Engine = strings.ToLower(m[name].Engine)
-
-		if v.TB == "" {
-			m[name].TB = name
+	for _, def := range m {
+		if !DBs[def.Engine] {
+			return nil, errors.New("invalid engine: " + def.Engine)
 		}
 
-		if err := check(v); err != nil {
+		if def.TB == "" {
+			return nil, errors.New("must have tb")
+		}
+
+		if len(def.Fields) == 0 {
+			return nil, errors.New("must have at least one field")
+		}
+
+		x, err := newParser(def).parse()
+		if err != nil {
 			return nil, err
 		}
+
+		r = append(r, x)
 	}
-	return m, nil
+
+	return r, nil
+}
+
+type parser struct {
+	d *Def
+}
+
+func newParser(d *Def) *parser {
+	return &parser{d: d}
+}
+
+func (p *parser) parse() (*X, error) {
+	x := &X{
+		Engine:  p.d.Engine,
+		DB:      p.d.DB,
+		TB:      p.d.TB,
+		Fs:      []*F{},
+		Comment: p.d.Comment,
+	}
+
+	pk, err := p.parsePK()
+	if err != nil {
+		return nil, err
+	}
+	x.PK = pk
+
+	for _, s := range p.d.Fields {
+		f, err := p.parseField(s)
+		if err != nil {
+			return nil, err
+		}
+		x.Fs = append(x.Fs, f)
+	}
+
+	idx, err := p.parseIndex(p.d.Indexes)
+	if err != nil {
+		return nil, err
+	}
+	x.Indexes = idx
+
+	if idx, err = p.parseIndex(p.d.Uniques); err != nil {
+		return nil, err
+	}
+	x.Uniques = idx
+
+	return x, nil
+}
+
+func (p *parser) parsePK() (*F, error) {
+	if p.d.PK == "" {
+		return nil, nil
+	}
+
+	// check if exists
+
+	var item *yaml.MapItem
+	for _, s := range p.d.Fields {
+		if s[0].Key.(string) == p.d.PK {
+			item = &s[0]
+			break
+		}
+	}
+	if item == nil {
+		return nil, errors.New("primary key not found: " + p.d.PK)
+	}
+
+	t := item.Value.(string)
+	if t != util.YamlI32 && t != util.YamlI64 {
+		return nil, errors.New("primary key must be integer")
+	}
+
+	return &F{
+		Name:  p.d.PK,
+		T:     t,
+		Camel: util.ToCamel(p.d.PK),
+		GoT:   util.GoT(t),
+	}, nil
+}
+
+func (p *parser) parseField(s yaml.MapSlice) (*F, error) {
+	fn := s[0].Key.(string)
+	if strings.HasPrefix(fn, "_") || strings.HasSuffix(fn, "_") || strings.Contains(fn, "-") {
+		return nil, errors.New("invalid field name: " + fn)
+	}
+
+	t := s[0].Value.(string)
+	if !Ts[t] {
+		return nil, errors.New("invalid field type: " + t)
+	}
+
+	f := F{
+		Name:  fn,
+		T:     t,
+		Camel: util.ToCamel(fn),
+		GoT:   util.GoT(t),
+	}
+
+	// check attributes
+	hasAttr := map[string]bool{}
+	for i, v := range s {
+		if i == 0 {
+			continue
+		}
+
+		n := v.Key.(string)
+		switch n {
+		case AutoIncr:
+			if t != util.YamlI32 && t != util.YamlI64 {
+				return nil, errors.New("auto incremented field must be integer")
+			}
+			if fn != p.d.PK {
+				return nil, errors.New("auto incremented field must be primary key")
+			}
+			f.AutoIncr = v.Value.(bool)
+		case Size:
+			if t != util.YamlStr {
+				return nil, errors.New("field has size must be string")
+			}
+
+			size, ok := v.Value.(int)
+			if !ok {
+				return nil, errors.New("size attribute must be integer: " + fn)
+			}
+			f.Size = int64(size)
+		case Comment:
+			f.Comment = v.Value.(string)
+		case Nullable:
+			f.Nullable = v.Value.(bool)
+		default:
+			return nil, errors.New("unknown field: " + n)
+		}
+		hasAttr[n] = true
+	}
+
+	if t == util.YamlStr && !hasAttr[Size] {
+		return nil, errors.New("field with string type must have size attribute")
+	}
+
+	return &f, nil
+}
+
+func (p *parser) parseIndex(indexes [][]string) ([][]*F, error) {
+	var a [][]*F
+
+	for _, idx := range indexes {
+		var b []*F
+
+	Field:
+		for _, field := range idx {
+			for _, f := range p.d.Fields {
+				if f[0].Key.(string) == field {
+					t := f[0].Value.(string)
+					b = append(b, &F{
+						Name:  field,
+						T:     t,
+						Camel: util.ToCamel(field),
+						GoT:   util.GoT(t),
+					})
+					continue Field
+				}
+			}
+			return nil, errors.New("index field not found: " + field)
+		}
+
+		a = append(a, b)
+	}
+	return a, nil
 }

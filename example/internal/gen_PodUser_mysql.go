@@ -114,7 +114,7 @@ func (mgr *_PodUserMgr) UniFindByMobilePhone(mobilePhone string) (*PodUser, erro
 }
 
 func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, limit int64) ([]*PodUser, error) {
-	query := `select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where create_dt=?`
+	query := `select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where create_dt = ?`
 	for i, o := range order {
 		if i == 0 {
 			query += " order by "
@@ -163,7 +163,7 @@ func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, l
 }
 
 func (mgr *_PodUserMgr) CountByCreateDt(createDt int64) (int64, error) {
-	query := `select count(1) from pod.pod_user where create_dt=?`
+	query := `select count(1) from pod.pod_user where create_dt = ?`
 	row := db.DB().QueryRow(query, createDt)
 
 	var c sql.NullInt64
@@ -176,7 +176,7 @@ func (mgr *_PodUserMgr) CountByCreateDt(createDt int64) (int64, error) {
 }
 
 func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order []string, offset, limit int64) ([]*PodUser, error) {
-	query := `select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where update_dt=?`
+	query := `select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where update_dt = ?`
 	for i, o := range order {
 		if i == 0 {
 			query += " order by "
@@ -225,7 +225,7 @@ func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order []string, offset, l
 }
 
 func (mgr *_PodUserMgr) CountByUpdateDt(updateDt int64) (int64, error) {
-	query := `select count(1) from pod.pod_user where update_dt=?`
+	query := `select count(1) from pod.pod_user where update_dt = ?`
 	row := db.DB().QueryRow(query, updateDt)
 
 	var c sql.NullInt64
@@ -369,15 +369,10 @@ func (mgr *_PodUserMgr) FindByCond(where []db.Rule, order []string, offset, limi
 }
 
 func (mgr *_PodUserMgr) Create(d *PodUser) error {
-	r, err := db.DB().Exec(`insert into pod.pod_user (nickname, password, mobile_phone, create_dt, update_dt) value (?,?,?,?,?)`, d.Nickname, d.Password, d.MobilePhone, d.CreateDt, d.UpdateDt)
+	_, err := db.DB().Exec(`insert into pod.pod_user (id, nickname, password, mobile_phone, create_dt, update_dt) value (?,?,?,?,?,?)`, d.Id, d.Nickname, d.Password, d.MobilePhone, d.CreateDt, d.UpdateDt)
 	if err != nil {
 		return err
 	}
-	id, err := r.LastInsertId()
-	if err != nil {
-		return err
-	}
-	d.Id = id
 	return nil
 }
 
@@ -416,7 +411,26 @@ func (mgr *_PodUserMgr) UniFindByPK(id int64) (*PodUser, error) {
 }
 
 func (mgr *_PodUserMgr) Update(d *PodUser) (int64, error) {
-	r, err := db.DB().Exec(`update pod.pod_user set nickname=?, password=?, mobile_phone=?, create_dt=?, update_dt=? where id=?`, d.Nickname, d.Password, d.MobilePhone, d.CreateDt, d.UpdateDt, d.Id)
+	r, err := db.DB().Exec(`update pod.pod_user set nickname = ?, password = ?, mobile_phone = ?, create_dt = ?, update_dt = ? where id = ?`, d.Nickname, d.Password, d.MobilePhone, d.CreateDt, d.UpdateDt, d.Id)
+	if err != nil {
+		return 0, err
+	}
+	n, err := r.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
+func (mgr *_PodUserMgr) RmByPK(pk int64, rules ...db.Rule) (int64, error) {
+	query := "delete from pod.pod_user where id = ?"
+	var p []interface{}
+	p = append(p, pk)
+	for _, r := range rules {
+		query += " and pod." + r.S + " = ?"
+		p = append(p, r.P)
+	}
+	r, err := db.DB().Exec(query, p...)
 	if err != nil {
 		return 0, err
 	}

@@ -1,13 +1,9 @@
 package parse
 
-import "gopkg.in/yaml.v2"
+import (
+	"gopkg.in/yaml.v2"
 
-// filed types
-const (
-	I32       = "i32"
-	I64       = "i64"
-	Str       = "str"
-	Timestamp = "timestamp"
+	"github.com/envzo/zorm/util"
 )
 
 // field attributes
@@ -19,12 +15,12 @@ const (
 )
 
 var (
-	dbs = map[string]bool{"mysql": true}
-	ts  = map[string]bool{
-		I32:       true,
-		I64:       true,
-		Str:       true,
-		Timestamp: true,
+	DBs = map[string]bool{"mysql": true}
+	Ts  = map[string]bool{
+		util.YamlI32:       true,
+		util.YamlI64:       true,
+		util.YamlStr:       true,
+		util.YamlTimestamp: true,
 	}
 )
 
@@ -37,4 +33,27 @@ type Def struct {
 	PK      string          `yaml:"pk"`
 	Indexes [][]string      `yaml:"indexes"`
 	Uniques [][]string      `yaml:"uniques"`
+}
+
+type F struct {
+	Name     string
+	T        string
+	Size     int64
+	Nullable bool
+	AutoIncr bool
+	Comment  string
+
+	Camel string
+	GoT   string
+}
+
+type X struct {
+	Engine  string
+	DB      string
+	TB      string
+	PK      *F
+	Fs      []*F
+	Comment string
+	Uniques [][]*F
+	Indexes [][]*F
 }
