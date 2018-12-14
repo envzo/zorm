@@ -57,6 +57,8 @@ func (g *gen) genORM(pkg string) []byte {
 	g.genFindByCond()
 	g.genCreate().Ln()
 	g.genUpsert().Ln()
+	g.genCountByRule()
+	g.genRmByRule()
 
 	if g.x.PK != nil {
 		g.genUniFindByPk()
@@ -399,15 +401,33 @@ func (g *gen) genUpdateByPK() *Buf {
 }
 
 func (g *gen) genRmByPK() {
-	g.B.WL("func (mgr *_", g.T, "Mgr) RmByPK(pk ", g.x.PK.GoT, ", rules ...db.Rule) (int64, error) {")
+	g.B.WL("func (mgr *_", g.T, "Mgr) RmByPK(pk ", g.x.PK.GoT, ") (int64, error) {")
 	g.B.WL(`query := "delete from `, g.x.DB, ".", g.x.TB, " where ", g.x.PK.Name, ` = ?"`)
 
+	g.B.WL("r,err := db.DB().Exec(query, pk)")
+	g.B.WL("if err != nil {")
+	g.B.WL("return 0, err")
+	g.B.WL("}")
+	g.B.WL("n,err:=r.RowsAffected()")
+	g.B.WL("if err!=nil {")
+	g.B.WL("return 0, err")
+	g.B.WL("}")
+	g.B.WL("return n, nil")
+	g.B.WL("}")
+}
+
+func (g *gen) genRmByRule() {
+	g.B.WL("func (mgr *_", g.T, "Mgr) RmByRule(rules ...db.Rule) (int64, error) {")
+	g.B.WL(`query := "delete from `, g.x.DB, ".", g.x.TB, ` where "`)
+
 	g.B.WL("var p []interface{}")
-	g.B.WL("p = append(p, pk)")
 
 	// params
-	g.B.WL(`for _, r := range rules {`)
-	g.B.WL(`	query += " and " + `, `r.S`)
+	g.B.WL(`for i, r := range rules {`)
+	g.B.WL(`if i > 0 {`)
+	g.B.WL(`	query += " and "`)
+	g.B.WL(`}`)
+	g.B.WL(`	query += r.S`)
 	g.B.WL(`	p = append(p, r.P)`)
 	g.B.WL(`}`)
 
@@ -838,5 +858,32 @@ func (g *gen) genCountByIndex(args []*parse.F) {
 
 	g.B.W("return c.Int64, nil")
 
+	g.B.WL2("}")
+}
+
+func (g *gen) genCountByRule() {
+	g.B.WL("func (mgr", " *_", g.T, "Mgr) CountByRule(rules ...db.Rule) (int64, error) {")
+
+	// make query sel
+	g.B.WL(`var p []interface{}`)
+	g.B.WL("query := `select count(1) from ", g.x.DB, ".", g.x.TB, " where`")
+	g.B.WL(`for i, rule := range rules {`)
+	g.B.WL(`	if i > 0 {`)
+	g.B.WL(`		query += " and "`)
+	g.B.WL(`	}`)
+	g.B.WL(`	query += rule.S`)
+	g.B.WL(`	p = append(p, rule.P)`)
+	g.B.WL2(`}`)
+
+	// end make query sql
+
+	g.B.WL2("row := db.DB().QueryRow(query, p...)")
+
+	g.B.WL2("var c sql.NullInt64")
+
+	g.B.WL("if err := row.Scan(&c); err != nil {")
+	g.B.WL("return 0, err")
+	g.B.WL2("}")
+	g.B.WL("return c.Int64, nil")
 	g.B.WL2("}")
 }

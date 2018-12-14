@@ -384,6 +384,48 @@ func (mgr *_PodUserMgr) Upsert(d *PodUser) error {
 	return err
 }
 
+func (mgr *_PodUserMgr) CountByRule(rules ...db.Rule) (int64, error) {
+	var p []interface{}
+	query := `select count(1) from pod.pod_user where`
+	for i, rule := range rules {
+		if i > 0 {
+			query += " and "
+		}
+		query += rule.S
+		p = append(p, rule.P)
+	}
+
+	row := db.DB().QueryRow(query, p...)
+
+	var c sql.NullInt64
+
+	if err := row.Scan(&c); err != nil {
+		return 0, err
+	}
+
+	return c.Int64, nil
+}
+
+func (mgr *_PodUserMgr) RmByRule(rules ...db.Rule) (int64, error) {
+	query := "delete from pod.pod_user where "
+	var p []interface{}
+	for i, r := range rules {
+		if i > 0 {
+			query += " and "
+		}
+		query += r.S
+		p = append(p, r.P)
+	}
+	r, err := db.DB().Exec(query, p...)
+	if err != nil {
+		return 0, err
+	}
+	n, err := r.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
+}
 func (mgr *_PodUserMgr) UniFindByPK(id int64) (*PodUser, error) {
 	row := db.DB().QueryRow(`select id, nickname, password, mobile_phone, create_dt, update_dt from pod.pod_user where id = ?`, id)
 
@@ -422,15 +464,9 @@ func (mgr *_PodUserMgr) Update(d *PodUser) (int64, error) {
 	return n, nil
 }
 
-func (mgr *_PodUserMgr) RmByPK(pk int64, rules ...db.Rule) (int64, error) {
+func (mgr *_PodUserMgr) RmByPK(pk int64) (int64, error) {
 	query := "delete from pod.pod_user where id = ?"
-	var p []interface{}
-	p = append(p, pk)
-	for _, r := range rules {
-		query += " and " + r.S
-		p = append(p, r.P)
-	}
-	r, err := db.DB().Exec(query, p...)
+	r, err := db.DB().Exec(query, pk)
 	if err != nil {
 		return 0, err
 	}
