@@ -11,9 +11,7 @@ import (
 )
 
 var _ = errors.New
-
 var _ = fmt.Printf
-
 var _ = sql.ErrNoRows
 
 type PodUser struct {
@@ -36,7 +34,7 @@ type _PodUserMgr struct{}
 var PodUserMgr = &_PodUserMgr{}
 
 func (mgr *_PodUserMgr) IsNicknameExists(nickname string) (bool, error) {
-	row := db.DB().QueryRow(`select count(1) from pod.pod_user where nickname=?`,
+	row := db.DB().QueryRow(`select count(1) from pod.pod_user where nickname = ?`,
 		nickname)
 
 	var c sql.NullInt64
@@ -75,7 +73,7 @@ func (mgr *_PodUserMgr) UniFindByNickname(nickname string) (*PodUser, error) {
 }
 
 func (mgr *_PodUserMgr) IsMobilePhoneExists(mobilePhone string) (bool, error) {
-	row := db.DB().QueryRow(`select count(1) from pod.pod_user where mobile_phone=?`,
+	row := db.DB().QueryRow(`select count(1) from pod.pod_user where mobile_phone = ?`,
 		mobilePhone)
 
 	var c sql.NullInt64
@@ -369,10 +367,15 @@ func (mgr *_PodUserMgr) FindByCond(where []db.Rule, order []string, offset, limi
 }
 
 func (mgr *_PodUserMgr) Create(d *PodUser) error {
-	_, err := db.DB().Exec(`insert into pod.pod_user (id, nickname, password, mobile_phone, create_dt, update_dt) value (?,?,?,?,?,?)`, d.Id, d.Nickname, d.Password, d.MobilePhone, d.CreateDt, d.UpdateDt)
+	r, err := db.DB().Exec(`insert into pod.pod_user (nickname, password, mobile_phone, create_dt, update_dt) value (?,?,?,?,?)`, d.Nickname, d.Password, d.MobilePhone, d.CreateDt, d.UpdateDt)
 	if err != nil {
 		return err
 	}
+	id, err := r.LastInsertId()
+	if err != nil {
+		return err
+	}
+	d.Id = id
 	return nil
 }
 
@@ -386,13 +389,16 @@ func (mgr *_PodUserMgr) Upsert(d *PodUser) error {
 
 func (mgr *_PodUserMgr) CountByRule(rules ...db.Rule) (int64, error) {
 	var p []interface{}
-	query := `select count(1) from pod.pod_user where`
+	query := `select count(1) from pod.pod_user where `
 	for i, rule := range rules {
 		if i > 0 {
 			query += " and "
 		}
 		query += rule.S
-		p = append(p, rule.P)
+		if rule.P != nil {
+			p = append(p, rule.P)
+		}
+
 	}
 
 	row := db.DB().QueryRow(query, p...)

@@ -1,6 +1,7 @@
 package gen
 
 import (
+	"github.com/envzo/zorm/cls"
 	"github.com/envzo/zorm/parse"
 	"github.com/envzo/zorm/util"
 )
@@ -24,9 +25,9 @@ func (g *gen) genORM(pkg string) []byte {
 	g.B.WL(`"github.com/envzo/zorm/db"`)
 	g.B.WL2(`)`)
 
-	g.B.WL2(`var _ = errors.New`)
-	g.B.WL2(`var _ = fmt.Printf`)
-	g.B.WL2(`var _ = sql.ErrNoRows`)
+	g.B.WL(`var _ = errors.New`)
+	g.B.WL(`var _ = fmt.Printf`)
+	g.B.WL(`var _ = sql.ErrNoRows`)
 
 	g.B.WL("type ", g.T, " struct {")
 	for _, f := range g.x.Fs {
@@ -44,7 +45,7 @@ func (g *gen) genORM(pkg string) []byte {
 	g.B.WL("var ", g.T, "Mgr = &_", g.T, "Mgr{}")
 
 	for _, fs := range g.x.Uniques {
-		g.genIsExistsOne(fs)
+		g.genIsExists(fs)
 		g.genUniFind(fs)
 	}
 
@@ -69,7 +70,7 @@ func (g *gen) genORM(pkg string) []byte {
 	return g.B.Bytes()
 }
 
-func (g *gen) genIsExistsOne(args []*parse.F) {
+func (g *gen) genIsExists(args []*parse.F) {
 	g.B.W("func (mgr", " *_", g.T, "Mgr) Is")
 	for _, f := range args {
 		g.B.W(f.Camel)
@@ -82,7 +83,7 @@ func (g *gen) genIsExistsOne(args []*parse.F) {
 		}
 		g.B.W(util.LowerFirstLetter(f.Camel)).Spc()
 
-		if f.T == util.YamlTimestamp { // it is convenient to use integer when querying
+		if f.T == cls.YamlTimestamp { // it is convenient to use integer when querying
 			g.B.W(util.I64)
 		} else {
 			g.B.W(f.GoT)
@@ -97,7 +98,7 @@ func (g *gen) genIsExistsOne(args []*parse.F) {
 		if i > 0 {
 			g.B.W(", ")
 		}
-		g.B.W(f.Name, "=?")
+		g.B.W(f.Name, " = ?")
 	}
 	g.B.WL("`, ")
 
@@ -131,7 +132,7 @@ func (g *gen) genUniFind(args []*parse.F) {
 		}
 		g.B.W(util.LowerFirstLetter(f.Camel)).Spc()
 
-		if f.T == util.YamlTimestamp { // it is convenient to use integer when querying
+		if f.T == cls.YamlTimestamp { // it is convenient to use integer when querying
 			g.B.W(util.I64)
 		} else {
 			g.B.W(f.GoT)
@@ -175,7 +176,6 @@ func (g *gen) genUniFind(args []*parse.F) {
 			n += "_"
 		}
 
-		// todo need refine
 		for _, arg := range args {
 			if arg.Name == f.Name {
 				n += "_1"
@@ -204,9 +204,9 @@ func (g *gen) genUniFind(args []*parse.F) {
 	for _, f := range g.x.Fs {
 		g.B.W(f.Camel, ":", vm[f.Camel])
 		switch f.T {
-		case util.YamlI64, util.YamlTimestamp:
+		case cls.YamlI64, cls.YamlTimestamp:
 			g.B.W(".Int64")
-		case util.YamlStr:
+		case cls.YamlStr:
 			g.B.W(".String")
 		}
 
@@ -269,9 +269,9 @@ func (g *gen) genCreate() *Buf {
 		g.B.WL("}")
 		g.B.W("d.", g.x.PK.Camel, "=")
 
-		if g.x.PK.T == util.YamlI64 {
+		if g.x.PK.T == cls.YamlI64 {
 			g.B.WL("id")
-		} else if g.x.PK.T == util.YamlI32 {
+		} else if g.x.PK.T == cls.YamlI32 {
 			g.B.WL("int32(id)")
 		}
 	}
@@ -296,7 +296,7 @@ func (g *gen) genUpsert() *Buf {
 func (g *gen) genUniFindByPk() {
 	g.B.W("func (mgr", " *_", g.T, "Mgr) UniFindByPK(", util.LowerFirstLetter(g.x.PK.Camel))
 
-	if g.x.PK.T == util.YamlTimestamp { // it is convenient to use integer when querying
+	if g.x.PK.T == cls.YamlTimestamp { // it is convenient to use integer when querying
 		g.B.Spc().W(util.I64)
 	} else {
 		g.B.Spc().W(g.x.PK.GoT)
@@ -348,9 +348,9 @@ func (g *gen) genUniFindByPk() {
 	for _, f := range g.x.Fs {
 		g.B.W(f.Camel, ":", vm[f.Camel])
 		switch f.T {
-		case util.YamlI64, util.YamlTimestamp:
+		case cls.YamlI64, cls.YamlTimestamp:
 			g.B.W(".Int64")
-		case util.YamlStr:
+		case cls.YamlStr:
 			g.B.W(".String")
 		}
 
@@ -456,7 +456,7 @@ func (g *gen) genFindByIndex(args []*parse.F) {
 		}
 		g.B.W(util.LowerFirstLetter(arg.Camel)).Spc()
 
-		if arg.T == util.YamlTimestamp { // it is convenient to use integer when querying
+		if arg.T == cls.YamlTimestamp { // it is convenient to use integer when querying
 			g.B.W(util.I64)
 		} else {
 			g.B.W(arg.GoT)
@@ -552,9 +552,9 @@ func (g *gen) genFindByIndex(args []*parse.F) {
 	for _, f := range g.x.Fs {
 		g.B.W(f.Camel, ":", vm[f.Camel])
 		switch f.T {
-		case util.YamlI64, util.YamlTimestamp:
+		case cls.YamlI64, cls.YamlTimestamp:
 			g.B.W(".Int64")
-		case util.YamlStr:
+		case cls.YamlStr:
 			g.B.W(".String")
 		}
 
@@ -676,9 +676,9 @@ func (g *gen) genFindByJoin() {
 	for _, f := range g.x.Fs {
 		g.B.W(f.Camel, ":", vm[f.Camel])
 		switch f.T {
-		case util.YamlI64, util.YamlTimestamp:
+		case cls.YamlI64, cls.YamlTimestamp:
 			g.B.W(".Int64")
-		case util.YamlStr:
+		case cls.YamlStr:
 			g.B.W(".String")
 		}
 
@@ -789,9 +789,9 @@ func (g *gen) genFindByCond() {
 	for _, f := range g.x.Fs {
 		g.B.W(f.Camel, ":", vm[f.Camel])
 		switch f.T {
-		case util.YamlI64, util.YamlTimestamp:
+		case cls.YamlI64, cls.YamlTimestamp:
 			g.B.W(".Int64")
-		case util.YamlStr:
+		case cls.YamlStr:
 			g.B.W(".String")
 		}
 
@@ -821,7 +821,7 @@ func (g *gen) genCountByIndex(args []*parse.F) {
 		}
 		g.B.W(util.LowerFirstLetter(arg.Camel)).Spc()
 
-		if arg.T == util.YamlTimestamp { // it is convenient to use integer when querying
+		if arg.T == cls.YamlTimestamp { // it is convenient to use integer when querying
 			g.B.W(util.I64)
 		} else {
 			g.B.W(arg.GoT)

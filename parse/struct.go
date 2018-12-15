@@ -1,9 +1,8 @@
 package parse
 
 import (
+	"github.com/envzo/zorm/cls"
 	"gopkg.in/yaml.v2"
-
-	"github.com/envzo/zorm/util"
 )
 
 // field attributes
@@ -16,11 +15,11 @@ const (
 
 var (
 	DBs = map[string]bool{"mysql": true}
-	Ts  = map[string]bool{
-		util.YamlI32:       true,
-		util.YamlI64:       true,
-		util.YamlStr:       true,
-		util.YamlTimestamp: true,
+	TS  = map[string]bool{
+		cls.YamlI32:       true,
+		cls.YamlI64:       true,
+		cls.YamlStr:       true,
+		cls.YamlTimestamp: true,
 	}
 )
 

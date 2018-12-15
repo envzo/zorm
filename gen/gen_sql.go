@@ -3,6 +3,7 @@ package gen
 import (
 	"strconv"
 
+	"github.com/envzo/zorm/cls"
 	"github.com/envzo/zorm/parse"
 	"github.com/envzo/zorm/util"
 )
@@ -17,7 +18,7 @@ func genSql(x *parse.X) string {
 		b.W(util.SqlTypeName(v.T))
 
 		switch v.T {
-		case util.YamlStr:
+		case cls.YamlStr:
 			b.W("(", strconv.FormatInt(v.Size, 10), ")")
 		}
 

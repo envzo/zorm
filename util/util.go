@@ -3,27 +3,23 @@ package util
 import (
 	"strings"
 	"unicode"
+
+	"github.com/envzo/zorm/cls"
 )
 
 const (
 	I64 = "int64"
 	I32 = "int32"
 	Str = "string"
-
-	// filed types
-	YamlI32       = "i32"
-	YamlI64       = "i64"
-	YamlStr       = "str"
-	YamlTimestamp = "timestamp"
 )
 
 func GoT(in string) string {
 	switch in {
-	case YamlI64, YamlTimestamp:
+	case cls.YamlI64, cls.YamlTimestamp:
 		return I64
-	case YamlI32:
+	case cls.YamlI32:
 		return I32
-	case YamlStr:
+	case cls.YamlStr:
 		return Str
 	}
 	return in
@@ -31,11 +27,11 @@ func GoT(in string) string {
 
 func NilSqlType(in string) string {
 	switch in {
-	case YamlI64, YamlTimestamp:
+	case cls.YamlI64, cls.YamlTimestamp:
 		return "sql.NullInt64"
-	case YamlI32:
+	case cls.YamlI32:
 		return I32
-	case YamlStr:
+	case cls.YamlStr:
 		return "sql.NullString"
 	}
 	return in
@@ -43,11 +39,11 @@ func NilSqlType(in string) string {
 
 func SqlTypeName(in string) string {
 	switch in {
-	case YamlI64, YamlTimestamp:
+	case cls.YamlI64, cls.YamlTimestamp:
 		return "bigint"
-	case YamlI32:
+	case cls.YamlI32:
 		return "int"
-	case YamlStr:
+	case cls.YamlStr:
 		return "varchar"
 	}
 	return in

@@ -6,6 +6,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
+	"github.com/envzo/zorm/cls"
 	"github.com/envzo/zorm/util"
 )
 
@@ -93,120 +94,86 @@ func (p *parser) parsePK() (*F, error) {
 
 	// check if exists
 
-	var fs yaml.MapSlice
+	var f yaml.MapSlice
 	for _, s := range p.d.Fields {
 		if s[0].Key.(string) == p.d.PK {
-			fs = s
+			f = s
 			break
 		}
 	}
-	if fs == nil {
+	if f == nil {
 		return nil, errors.New("primary key not found: " + p.d.PK)
 	}
 
-	field := F{
-		Name:  p.d.PK,
-		Camel: util.ToCamel(p.d.PK),
+	pk, err := p.parseField(f)
+	if err != nil {
+		return nil, err
 	}
 
-	for i, v := range fs {
-		if i == 0 {
-			t := v.Value.(string)
-			if t != util.YamlI32 && t != util.YamlI64 {
-				return nil, errors.New("primary key must be integer")
-			}
-
-			field.T = t
-			field.GoT = util.GoT(t)
-
-			continue
-		}
-
-		switch n := v.Key.(string); n {
-		case AutoIncr:
-			if field.T != util.YamlI32 && field.T != util.YamlI64 {
-				return nil, errors.New("auto incremented field must be integer")
-			}
-			field.AutoIncr = v.Value.(bool)
-		case Size:
-			if field.T != util.YamlStr {
-				return nil, errors.New("field has size must be string")
-			}
-
-			size, ok := v.Value.(int)
-			if !ok {
-				return nil, errors.New("size attribute must be integer: " + field.Name)
-			}
-			field.Size = int64(size)
-		case Comment:
-			field.Comment = v.Value.(string)
-		case Nullable:
-			field.Nullable = v.Value.(bool)
-		default:
-			return nil, errors.New("unknown attribute: " + n)
-		}
+	if pk.T != cls.YamlI32 && pk.T != cls.YamlI64 {
+		return nil, errors.New("primary key must be integer")
 	}
 
-	return &field, nil
+	return pk, nil
 }
 
 func (p *parser) parseField(s yaml.MapSlice) (*F, error) {
-	fn := s[0].Key.(string)
-	if strings.HasPrefix(fn, "_") || strings.HasSuffix(fn, "_") || strings.Contains(fn, "-") {
-		return nil, errors.New("invalid field name: " + fn)
+	n := s[0].Key.(string)
+	if strings.HasPrefix(n, "_") || strings.HasSuffix(n, "_") || strings.Contains(n, "-") {
+		return nil, errors.New("invalid field name: " + n)
 	}
 
 	t := s[0].Value.(string)
-	if !Ts[t] {
+	if !TS[t] {
 		return nil, errors.New("invalid field type: " + t)
 	}
 
 	f := F{
-		Name:  fn,
+		Name:  n,
 		T:     t,
-		Camel: util.ToCamel(fn),
+		Camel: util.ToCamel(n),
 		GoT:   util.GoT(t),
 	}
 
 	// check attributes
 	hasAttr := map[string]bool{}
-	for i, v := range s {
+	for i, attr := range s {
 		if i == 0 {
 			continue
 		}
 
-		n := v.Key.(string)
-		switch n {
+		attrName := attr.Key.(string)
+		switch attrName {
 		case AutoIncr:
-			if t != util.YamlI32 && t != util.YamlI64 {
-				return nil, errors.New("auto incremented field must be integer")
+			if t != cls.YamlI32 && t != cls.YamlI64 {
+				return nil, errors.New("field has auto increment attr must be integer: " + f.Name)
 			}
-			if fn != p.d.PK {
+			if n != p.d.PK {
 				return nil, errors.New("auto incremented field must be primary key")
 			}
-			f.AutoIncr = v.Value.(bool)
+			f.AutoIncr = attr.Value.(bool)
 		case Size:
-			if t != util.YamlStr {
-				return nil, errors.New("field has size must be string")
+			if t != cls.YamlStr {
+				return nil, errors.New("field has size attr must be string: " + f.Name)
 			}
 
-			size, ok := v.Value.(int)
+			size, ok := attr.Value.(int)
 			if !ok {
-				return nil, errors.New("size attribute must be integer: " + fn)
+				return nil, errors.New("value of size attr must be integer: " + f.Name)
 			}
 			f.Size = int64(size)
 		case Comment:
-			f.Comment = v.Value.(string)
+			f.Comment = attr.Value.(string)
 		case Nullable:
-			f.Nullable = v.Value.(bool)
+			f.Nullable = attr.Value.(bool)
 		default:
-			return nil, errors.New("unknown field: " + n)
+			return nil, errors.New("unknown field: " + attrName)
 		}
-		hasAttr[n] = true
+		hasAttr[attrName] = true
 	}
 
-	if t == util.YamlStr && !hasAttr[Size] {
-		return nil, errors.New("field with string type must have size attribute")
+	if t == cls.YamlStr && !hasAttr[Size] {
+		return nil, errors.New("field with string type must have size attr")
 	}
 
 	return &f, nil
