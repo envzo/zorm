@@ -202,13 +202,8 @@ func (g *gen) genUniFind(args []*parse.F) {
 
 	g.B.WL("d := ", g.T, "{")
 	for _, f := range g.x.Fs {
-		g.B.W(f.Camel, ":", vm[f.Camel])
-		switch f.T {
-		case cls.YamlI64, cls.YamlTimestamp:
-			g.B.W(".Int64")
-		case cls.YamlStr:
-			g.B.W(".String")
-		}
+		g.B.W(f.Camel, ":")
+		g.B.W(util.DerefNilSqlType(vm[f.Camel], f.T))
 
 		g.B.WL(",")
 	}
@@ -346,13 +341,8 @@ func (g *gen) genUniFindByPk() {
 
 	g.B.WL("d := ", g.T, "{")
 	for _, f := range g.x.Fs {
-		g.B.W(f.Camel, ":", vm[f.Camel])
-		switch f.T {
-		case cls.YamlI64, cls.YamlTimestamp:
-			g.B.W(".Int64")
-		case cls.YamlStr:
-			g.B.W(".String")
-		}
+		g.B.W(f.Camel, ":")
+		g.B.W(util.DerefNilSqlType(vm[f.Camel], f.T))
 
 		g.B.WL(",")
 	}
@@ -550,13 +540,8 @@ func (g *gen) genFindByIndex(args []*parse.F) {
 
 	g.B.WL("d := ", g.T, "{")
 	for _, f := range g.x.Fs {
-		g.B.W(f.Camel, ":", vm[f.Camel])
-		switch f.T {
-		case cls.YamlI64, cls.YamlTimestamp:
-			g.B.W(".Int64")
-		case cls.YamlStr:
-			g.B.W(".String")
-		}
+		g.B.W(f.Camel, ":")
+		g.B.W(util.DerefNilSqlType(vm[f.Camel], f.T))
 
 		g.B.WL(",")
 	}
@@ -674,13 +659,8 @@ func (g *gen) genFindByJoin() {
 
 	g.B.WL("d := ", g.T, "{")
 	for _, f := range g.x.Fs {
-		g.B.W(f.Camel, ":", vm[f.Camel])
-		switch f.T {
-		case cls.YamlI64, cls.YamlTimestamp:
-			g.B.W(".Int64")
-		case cls.YamlStr:
-			g.B.W(".String")
-		}
+		g.B.W(f.Camel, ":")
+		g.B.W(util.DerefNilSqlType(vm[f.Camel], f.T))
 
 		g.B.WL(",")
 	}
@@ -787,13 +767,8 @@ func (g *gen) genFindByCond() {
 
 	g.B.WL("d := ", g.T, "{")
 	for _, f := range g.x.Fs {
-		g.B.W(f.Camel, ":", vm[f.Camel])
-		switch f.T {
-		case cls.YamlI64, cls.YamlTimestamp:
-			g.B.W(".Int64")
-		case cls.YamlStr:
-			g.B.W(".String")
-		}
+		g.B.W(f.Camel, ":")
+		g.B.W(util.DerefNilSqlType(vm[f.Camel], f.T))
 
 		g.B.WL(",")
 	}

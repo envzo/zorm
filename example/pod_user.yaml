@@ -13,12 +13,14 @@ pod_user:
     - password: str
       __size: 16
       __nullable: false
+    - age: i32
     - mobile_phone: str
       __size: 18
       __nullable: false
       __comment: 手机号
     - create_dt: timestamp
       __nullable: false
+    - is_blocked: bool
     - update_dt: timestamp
       __nullable: false
       __comment: 更新时间

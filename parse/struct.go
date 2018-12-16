@@ -20,6 +20,7 @@ var (
 		cls.YamlI64:       true,
 		cls.YamlStr:       true,
 		cls.YamlTimestamp: true,
+		cls.YamlBool:      true,
 	}
 )
 
