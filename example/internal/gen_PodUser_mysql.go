@@ -7,11 +7,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/envzo/zorm/db"
 )
 
 var _ = errors.New
 var _ = fmt.Printf
+var _ = strings.Trim
 var _ = sql.ErrNoRows
 
 type PodUser struct {
@@ -129,7 +132,11 @@ func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, l
 		} else {
 			query += ", "
 		}
-		query += o[1:]
+		if strings.HasPrefix(o, "-") {
+			query += o[1:]
+		} else {
+			query += o
+		}
 		if o[0] == '-' {
 			query += " desc"
 		}
@@ -195,7 +202,11 @@ func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order []string, offset, l
 		} else {
 			query += ", "
 		}
-		query += o[1:]
+		if strings.HasPrefix(o, "-") {
+			query += o[1:]
+		} else {
+			query += o
+		}
 		if o[0] == '-' {
 			query += " desc"
 		}
@@ -286,7 +297,11 @@ func (mgr *_PodUserMgr) FindByMultiJoin(joins []db.Join, where []db.Rule, order 
 		} else {
 			query += ", "
 		}
-		query += o[1:]
+		if strings.HasPrefix(o, "-") {
+			query += o[1:]
+		} else {
+			query += o
+		}
 		if o[0] == '-' {
 			query += " desc"
 		}
@@ -392,7 +407,11 @@ func (mgr *_PodUserMgr) FindByCond(where []db.Rule, order []string, offset, limi
 		} else if i != len(order)-1 {
 			query += ", "
 		}
-		query += o[1:]
+		if strings.HasPrefix(o, "-") {
+			query += o[1:]
+		} else {
+			query += o
+		}
 		if o[0] == '-' {
 			query += " desc"
 		}
