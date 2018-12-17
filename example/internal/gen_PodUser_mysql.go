@@ -256,9 +256,9 @@ func (mgr *_PodUserMgr) CountByUpdateDt(updateDt int64) (int64, error) {
 func (mgr *_PodUserMgr) FindByMultiJoin(joins []db.Join, where []db.Rule, order []string, offset, limit int64) ([]*PodUser, error) {
 	var params []interface{}
 
-	query := `select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt from pod.pod_user`
+	query := `select pod_user.id, pod_user.nickname, pod_user.password, pod_user.age, pod_user.mobile_phone, pod_user.create_dt, pod_user.is_blocked, pod_user.update_dt from pod.pod_user`
 	for _, join := range joins {
-		query += ` join pod` + join.T + ` on `
+		query += ` join pod.` + join.T + ` on `
 		for i, v := range join.Rule {
 			if i > 0 {
 				query += " and "

@@ -580,12 +580,12 @@ func (g *gen) genFindByMultiJoin() {
 		if i > 0 {
 			g.B.W(", ")
 		}
-		g.B.W(f.Name)
+		g.B.W(g.x.TB, ".", f.Name)
 	}
 	g.B.WL(" from ", g.x.DB, ".", g.x.TB, "`")
 
 	g.B.WL("for _, join := range joins {")
-	g.B.WL("query += ` join ", g.x.DB, "` + ", "join.T + ` on `")
+	g.B.WL("query += ` join ", g.x.DB, ".` + ", "join.T + ` on `")
 	g.B.WL(`for i, v := range join.Rule {`)
 	g.B.WL(`	if i > 0 {`)
 	g.B.WL(`		query += " and "`)
