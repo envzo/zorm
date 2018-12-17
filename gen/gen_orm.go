@@ -54,6 +54,7 @@ func (g *gen) genORM(pkg string) []byte {
 		g.genCountByIndex(fs)
 	}
 
+	g.genFindByMultiJoin()
 	g.genFindByJoin()
 	g.genFindByCond()
 	g.genCreate().Ln()
@@ -557,7 +558,18 @@ func (g *gen) genFindByIndex(args []*parse.F) {
 }
 
 func (g *gen) genFindByJoin() {
-	g.B.W("func (mgr", " *_", g.T, "Mgr) FindByJoin(t string, on, where []db.Rule, order []string, offset, limit int64)")
+	g.B.W("func (mgr", " *_", g.T, "Mgr) FindByJoin(t string, on, where []db.Rule, order []string, offset, limit int64) ")
+	g.B.W("([]*" + g.T + ", error)").WL("{")
+
+	g.B.WL("return mgr.FindByMultiJoin([]db.Join{")
+	g.B.WL("	{T: t, Rule: on},")
+	g.B.WL("}, where, order, offset, limit)")
+
+	g.B.WL("}")
+}
+
+func (g *gen) genFindByMultiJoin() {
+	g.B.W("func (mgr", " *_", g.T, "Mgr) FindByMultiJoin(joins []db.Join, where []db.Rule, order []string, offset, limit int64)")
 	g.B.Spc().W("([]*" + g.T + ", error)").WL("{")
 
 	g.B.WL2("var params []interface{}")
@@ -570,8 +582,11 @@ func (g *gen) genFindByJoin() {
 		}
 		g.B.W(f.Name)
 	}
-	g.B.WL(" from ", g.x.DB, ".", g.x.TB, " join t on `")
-	g.B.WL(`for i, v := range on {`)
+	g.B.WL(" from ", g.x.DB, ".", g.x.TB, "`")
+
+	g.B.WL("for _, join := range joins {")
+	g.B.WL("query += ` join ", g.x.DB, "` + ", "join.T + ` on `")
+	g.B.WL(`for i, v := range join.Rule {`)
 	g.B.WL(`	if i > 0 {`)
 	g.B.WL(`		query += " and "`)
 	g.B.WL(`	}`)
@@ -580,6 +595,8 @@ func (g *gen) genFindByJoin() {
 	g.B.WL(`		params = append(params, v.P)`)
 	g.B.WL(`	}`)
 	g.B.WL(`}`)
+	g.B.WL("}")
+
 	g.B.WL(`for i, v := range where {`)
 	g.B.WL(`	if i == 0 {`)
 	g.B.WL(`		query += " where "`)

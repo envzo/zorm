@@ -29,3 +29,8 @@ type Rule struct {
 	S string
 	P interface{}
 }
+
+type Join struct {
+	T    string
+	Rule []Rule
+}

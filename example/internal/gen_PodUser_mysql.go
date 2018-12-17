@@ -253,17 +253,20 @@ func (mgr *_PodUserMgr) CountByUpdateDt(updateDt int64) (int64, error) {
 	return c.Int64, nil
 }
 
-func (mgr *_PodUserMgr) FindByJoin(t string, on, where []db.Rule, order []string, offset, limit int64) ([]*PodUser, error) {
+func (mgr *_PodUserMgr) FindByMultiJoin(joins []db.Join, where []db.Rule, order []string, offset, limit int64) ([]*PodUser, error) {
 	var params []interface{}
 
-	query := `select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt from pod.pod_user join t on `
-	for i, v := range on {
-		if i > 0 {
-			query += " and "
-		}
-		query += v.S
-		if v.P != nil {
-			params = append(params, v.P)
+	query := `select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt from pod.pod_user`
+	for _, join := range joins {
+		query += ` join pod` + join.T + ` on `
+		for i, v := range join.Rule {
+			if i > 0 {
+				query += " and "
+			}
+			query += v.S
+			if v.P != nil {
+				params = append(params, v.P)
+			}
 		}
 	}
 	for i, v := range where {
@@ -328,6 +331,11 @@ func (mgr *_PodUserMgr) FindByJoin(t string, on, where []db.Rule, order []string
 	return ret, nil
 }
 
+func (mgr *_PodUserMgr) FindByJoin(t string, on, where []db.Rule, order []string, offset, limit int64) ([]*PodUser, error) {
+	return mgr.FindByMultiJoin([]db.Join{
+		{T: t, Rule: on},
+	}, where, order, offset, limit)
+}
 func (mgr *_PodUserMgr) FindByCond(where []db.Rule, order []string, offset, limit int64) ([]*PodUser, error) {
 	var params []interface{}
 
