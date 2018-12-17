@@ -55,6 +55,7 @@ func (g *gen) genORM(pkg string) []byte {
 	}
 
 	g.genFindByMultiJoin()
+	g.genCountByMultiJoin()
 	g.genFindByJoin()
 	g.genFindByCond()
 	g.genCreate().Ln()
@@ -255,7 +256,7 @@ func (g *gen) genCreate() *Buf {
 
 	g.B.WL(")")
 	g.B.WL("if err != nil {")
-	g.B.WL("return err")
+	g.B.WL("	return err")
 	g.B.WL("}")
 
 	if g.x.PK != nil && g.x.PK.AutoIncr {
@@ -688,6 +689,62 @@ func (g *gen) genFindByMultiJoin() {
 	g.B.WL("}") // end rows loop
 
 	g.B.W("return ret, nil")
+
+	g.B.WL2("}")
+}
+
+func (g *gen) genCountByMultiJoin() {
+	g.B.W("func (mgr", " *_", g.T, "Mgr) CountByMultiJoin(joins []db.Join, where []db.Rule) ")
+	g.B.W("(int64, error)").WL("{")
+
+	g.B.WL2("var params []interface{}")
+
+	// make query sel
+	g.B.W("query := `select count(1) from (select ")
+	for i, f := range g.x.Fs {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(g.x.TB, ".", f.Name)
+	}
+	g.B.WL(" from ", g.x.DB, ".", g.x.TB, "`")
+
+	g.B.WL("for _, join := range joins {")
+	g.B.WL("query += ` join ", g.x.DB, ".` + ", "join.T + ` on `")
+	g.B.WL(`for i, v := range join.Rule {`)
+	g.B.WL(`	if i > 0 {`)
+	g.B.WL(`		query += " and "`)
+	g.B.WL(`	}`)
+	g.B.WL(`	query += v.S`)
+	g.B.WL(`	if v.P != nil {`)
+	g.B.WL(`		params = append(params, v.P)`)
+	g.B.WL(`	}`)
+	g.B.WL(`}`)
+	g.B.WL("}")
+
+	g.B.WL(`for i, v := range where {`)
+	g.B.WL(`	if i == 0 {`)
+	g.B.WL(`		query += " where "`)
+	g.B.WL(`	} else if i != len(where)-1 {`)
+	g.B.WL(`		query += " and "`)
+	g.B.WL(`	}`)
+	g.B.WL(`	query += v.S`)
+	g.B.WL(`	if v.P != nil {`)
+	g.B.WL(`		params = append(params, v.P)`)
+	g.B.WL(`	}`)
+	g.B.WL(`}`)
+	g.B.WL2(`query += ") t"`)
+
+	// end make query sql
+
+	g.B.WL("row := db.DB().QueryRow(query, params...)")
+
+	g.B.WL("var c sql.NullInt64")
+	g.B.WL("if err := row.Scan(&c); err != nil {")
+	g.B.WL("return 0, err")
+	g.B.WL("}")
+
+	g.B.W("return c.Int64, nil")
 
 	g.B.WL2("}")
 }
