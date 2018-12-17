@@ -723,7 +723,7 @@ func (g *gen) genFindByCond() {
 	g.B.WL("} else if i != len(order)-1 {")
 	g.B.WL(`query += ", "`)
 	g.B.WL("}")
-	g.B.WL("query += o")
+	g.B.WL("query += o[1:]")
 	g.B.WL("if o[0] == '-' {")
 	g.B.WL(`query += " desc"`)
 	g.B.WL("}")

@@ -355,7 +355,7 @@ func (mgr *_PodUserMgr) FindByCond(where []db.Rule, order []string, offset, limi
 		} else if i != len(order)-1 {
 			query += ", "
 		}
-		query += o
+		query += o[1:]
 		if o[0] == '-' {
 			query += " desc"
 		}
