@@ -283,7 +283,7 @@ func (mgr *_PodUserMgr) FindByMultiJoin(joins []db.Join, where []db.Rule, order 
 	for i, v := range where {
 		if i == 0 {
 			query += " where "
-		} else if i != len(where)-1 {
+		} else {
 			query += " and "
 		}
 		query += v.S

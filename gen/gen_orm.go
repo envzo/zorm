@@ -607,7 +607,7 @@ func (g *gen) genFindByMultiJoin() {
 	g.B.WL(`for i, v := range where {`)
 	g.B.WL(`	if i == 0 {`)
 	g.B.WL(`		query += " where "`)
-	g.B.WL(`	} else if i != len(where)-1 {`)
+	g.B.WL(`	} else {`)
 	g.B.WL(`		query += " and "`)
 	g.B.WL(`	}`)
 	g.B.WL(`	query += v.S`)
