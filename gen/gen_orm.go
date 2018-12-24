@@ -49,6 +49,7 @@ func (g *gen) genORM(pkg string) []byte {
 	for _, fs := range g.x.Uniques {
 		g.genIsExists(fs)
 		g.genUniFind(fs)
+		g.genUniUpdate(fs)
 	}
 
 	for _, fs := range g.x.Indexes {
@@ -216,6 +217,82 @@ func (g *gen) genUniFind(args []*parse.F) {
 	g.B.W("return &d, nil")
 
 	g.B.WL2("}")
+}
+
+func (g *gen) genUniUpdate(args []*parse.F) {
+	g.B.W("func (mgr", " *_", g.T, "Mgr) UpdateBy")
+	for _, f := range args {
+		g.B.W(f.Camel)
+	}
+	g.B.W("(d *", g.T, ")")
+	g.B.Spc().W("(int64, error) ").WL("{")
+
+	g.B.W("r,err := db.DB().Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
+	flag := false
+SetField:
+	for _, f := range g.x.Fs {
+		if g.x.PK != nil && f.Name == g.x.PK.Name && g.x.PK.AutoIncr {
+			continue
+		}
+
+		for _, fields := range g.x.Uniques {
+			for _, field := range fields {
+				if f.Name == field.Name {
+					continue SetField
+				}
+			}
+		}
+
+		if flag {
+			g.B.W(", ")
+		}
+		g.B.W(f.Name, " = ?")
+		flag = true
+	}
+	g.B.W(" where ")
+
+	for i, f := range args {
+		if i > 0 {
+			g.B.W(" and ")
+		}
+		g.B.W(f.Name, " = ?")
+	}
+	g.B.W("`, ")
+
+	// params
+SetParam:
+	for _, f := range g.x.Fs {
+		if g.x.PK != nil && f.Name == g.x.PK.Name && g.x.PK.AutoIncr {
+			continue
+		}
+
+		for _, fields := range g.x.Uniques {
+			for _, field := range fields {
+				if f.Name == field.Name {
+					continue SetParam
+				}
+			}
+		}
+
+		g.B.W("d.", f.Camel, ", ")
+	}
+
+	for i, f := range args {
+		g.B.W("d.", f.Camel)
+		if i != len(args)-1 {
+			g.B.W(", ")
+		}
+	}
+	g.B.WL(")")
+	g.B.WL("if err != nil {")
+	g.B.WL("	return 0, err")
+	g.B.WL("}")
+	g.B.WL("n,err := r.RowsAffected()")
+	g.B.WL("if err != nil {")
+	g.B.WL("	return 0, err")
+	g.B.WL("}")
+	g.B.WL("return n, nil")
+	g.B.WL("}").Ln()
 }
 
 func (g *gen) genCreate() *Buf {

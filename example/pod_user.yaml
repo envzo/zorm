@@ -25,5 +25,5 @@ pod_user:
       __nullable: false
       __comment: 更新时间
   pk: id
-  uniques: [[nickname], [mobile_phone]]
+  uniques: [[nickname,mobile_phone], [mobile_phone]]
   indexes: [[create_dt], [update_dt]]

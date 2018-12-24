@@ -38,9 +38,9 @@ type _PodUserMgr struct{}
 
 var PodUserMgr = &_PodUserMgr{}
 
-func (mgr *_PodUserMgr) IsNicknameExists(nickname string) (bool, error) {
-	row := db.DB().QueryRow(`select count(1) from pod.pod_user where nickname = ?`,
-		nickname)
+func (mgr *_PodUserMgr) IsNicknameMobilePhoneExists(nickname string, mobilePhone string) (bool, error) {
+	row := db.DB().QueryRow(`select count(1) from pod.pod_user where nickname = ?, mobile_phone = ?`,
+		nickname, mobilePhone)
 
 	var c sql.NullInt64
 
@@ -50,20 +50,20 @@ func (mgr *_PodUserMgr) IsNicknameExists(nickname string) (bool, error) {
 	return c.Int64 > 0, nil
 }
 
-func (mgr *_PodUserMgr) UniFindByNickname(nickname string) (*PodUser, error) {
-	row := db.DB().QueryRow(`select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt from pod.pod_user where nickname = ?`,
-		nickname)
+func (mgr *_PodUserMgr) UniFindByNicknameMobilePhone(nickname string, mobilePhone string) (*PodUser, error) {
+	row := db.DB().QueryRow(`select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt from pod.pod_user where nickname = ? and mobile_phone = ?`,
+		nickname, mobilePhone)
 
 	var id sql.NullInt64
 	var nickname_1 sql.NullString
 	var password sql.NullString
 	var age sql.NullInt64
-	var mobilePhone sql.NullString
+	var mobilePhone_1 sql.NullString
 	var createDt sql.NullInt64
 	var isBlocked sql.NullBool
 	var updateDt sql.NullInt64
 
-	if err := row.Scan(&id, &nickname_1, &password, &age, &mobilePhone, &createDt, &isBlocked, &updateDt); err != nil {
+	if err := row.Scan(&id, &nickname_1, &password, &age, &mobilePhone_1, &createDt, &isBlocked, &updateDt); err != nil {
 		return nil, err
 	}
 
@@ -72,13 +72,25 @@ func (mgr *_PodUserMgr) UniFindByNickname(nickname string) (*PodUser, error) {
 		Nickname:    nickname_1.String,
 		Password:    password.String,
 		Age:         int32(age.Int64),
-		MobilePhone: mobilePhone.String,
+		MobilePhone: mobilePhone_1.String,
 		CreateDt:    createDt.Int64,
 		IsBlocked:   isBlocked.Bool,
 		UpdateDt:    updateDt.Int64,
 	}
 
 	return &d, nil
+}
+
+func (mgr *_PodUserMgr) UpdateByNicknameMobilePhone(d *PodUser) (int64, error) {
+	r, err := db.DB().Exec(`update pod.pod_user set password = ?, age = ?, create_dt = ?, is_blocked = ?, update_dt = ? where nickname = ? and mobile_phone = ?`, d.Password, d.Age, d.CreateDt, d.IsBlocked, d.UpdateDt, d.Nickname, d.MobilePhone)
+	if err != nil {
+		return 0, err
+	}
+	n, err := r.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
 }
 
 func (mgr *_PodUserMgr) IsMobilePhoneExists(mobilePhone string) (bool, error) {
@@ -122,6 +134,18 @@ func (mgr *_PodUserMgr) UniFindByMobilePhone(mobilePhone string) (*PodUser, erro
 	}
 
 	return &d, nil
+}
+
+func (mgr *_PodUserMgr) UpdateByMobilePhone(d *PodUser) (int64, error) {
+	r, err := db.DB().Exec(`update pod.pod_user set password = ?, age = ?, create_dt = ?, is_blocked = ?, update_dt = ? where mobile_phone = ?`, d.Password, d.Age, d.CreateDt, d.IsBlocked, d.UpdateDt, d.MobilePhone)
+	if err != nil {
+		return 0, err
+	}
+	n, err := r.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
 }
 
 func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, limit int64) ([]*PodUser, error) {
@@ -365,7 +389,7 @@ func (mgr *_PodUserMgr) CountByMultiJoin(joins []db.Join, where []db.Rule) (int6
 	for i, v := range where {
 		if i == 0 {
 			query += " where "
-		} else if i != len(where)-1 {
+		} else {
 			query += " and "
 		}
 		query += v.S
