@@ -6,5 +6,6 @@ const (
 	YamlI64       = "i64"
 	YamlStr       = "str"
 	YamlBool      = "bool"
+	YamlFloat     = "float"
 	YamlTimestamp = "timestamp"
 )

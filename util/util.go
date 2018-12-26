@@ -8,10 +8,11 @@ import (
 )
 
 const (
-	I64  = "int64"
-	I32  = "int32"
-	Str  = "string"
-	Bool = "bool"
+	I64     = "int64"
+	I32     = "int32"
+	Str     = "string"
+	Bool    = "bool"
+	Float32 = "float32"
 )
 
 func GoT(in string) string {
@@ -24,6 +25,8 @@ func GoT(in string) string {
 		return Str
 	case cls.YamlBool:
 		return Bool
+	case cls.YamlFloat:
+		return Float32
 	default:
 		panic("unknown type: " + in)
 	}
@@ -37,6 +40,8 @@ func NilSqlType(in string) string {
 		return "sql.NullString"
 	case cls.YamlBool:
 		return "sql.NullBool"
+	case cls.YamlFloat:
+		return "sql.NullFloat64"
 	default:
 		panic("unknown type: " + in)
 	}
@@ -48,6 +53,8 @@ func DerefNilSqlType(n, t string) string {
 		return n + ".Int64"
 	case cls.YamlI32:
 		return "int32(" + n + ".Int64)"
+	case cls.YamlFloat:
+		return "float32(" + n + ".Float64)"
 	case cls.YamlStr:
 		return n + ".String"
 	case cls.YamlBool:
@@ -67,6 +74,8 @@ func SqlTypeName(in string) string {
 		return "varchar"
 	case cls.YamlBool:
 		return "tinyint(1)"
+	case cls.YamlFloat:
+		return "float"
 	default:
 		panic("unknown type: " + in)
 	}
