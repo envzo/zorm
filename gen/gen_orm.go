@@ -50,6 +50,7 @@ func (g *gen) genORM(pkg string) []byte {
 		g.genIsExists(fs)
 		g.genUniFind(fs)
 		g.genUniUpdate(fs)
+		g.genUniRm(fs)
 	}
 
 	for _, fs := range g.x.Indexes {
@@ -295,6 +296,43 @@ SetParam:
 	g.B.WL("}").Ln()
 }
 
+func (g *gen) genUniRm(args []*parse.F) {
+	g.B.W("func (mgr", " *_", g.T, "Mgr) UniRmBy")
+	for _, f := range args {
+		g.B.W(f.Camel)
+	}
+	g.B.W("(d *", g.T, ")")
+	g.B.Spc().W("(int64, error) ").WL("{")
+
+	g.B.W("r,err := db.DB().Exec(`delete from ", g.x.DB, ".", g.x.TB, " where ")
+
+	for i, f := range args {
+		if i > 0 {
+			g.B.W(" and ")
+		}
+		g.B.W(f.Name, " = ?")
+	}
+	g.B.W("`, ")
+
+	// params
+	for i, f := range args {
+		g.B.W("d.", f.Camel)
+		if i != len(args)-1 {
+			g.B.W(", ")
+		}
+	}
+	g.B.WL(")")
+	g.B.WL("if err != nil {")
+	g.B.WL("	return 0, err")
+	g.B.WL("}")
+	g.B.WL("n,err := r.RowsAffected()")
+	g.B.WL("if err != nil {")
+	g.B.WL("	return 0, err")
+	g.B.WL("}")
+	g.B.WL("return n, nil")
+	g.B.WL("}").Ln()
+}
+
 func (g *gen) genCreate() *Buf {
 	g.B.WL("func (mgr *_", g.T, "Mgr) Create(d *", g.T, ") error {")
 	if g.x.PK != nil && g.x.PK.AutoIncr {
@@ -340,7 +378,7 @@ func (g *gen) genCreate() *Buf {
 
 	if g.x.PK != nil && g.x.PK.AutoIncr {
 		g.B.WL("id,err := r.LastInsertId()")
-		g.B.WL("if err!=nil {")
+		g.B.WL("if err != nil {")
 		g.B.WL("return err")
 		g.B.WL("}")
 		g.B.W("d.", g.x.PK.Camel, "=")
@@ -416,7 +454,7 @@ func (g *gen) genUniFindByPk() {
 		}
 		g.B.W("&", vm[f.Camel])
 	}
-	g.B.W("); err!= nil {")
+	g.B.W("); err != nil {")
 	g.B.W("return nil, err")
 	g.B.WL2("}")
 
@@ -460,11 +498,11 @@ func (g *gen) genUpdateByPK() *Buf {
 	}
 
 	g.B.WL(", d.", g.x.PK.Camel, ")")
-	g.B.WL("if err!=nil {")
+	g.B.WL("if err != nil {")
 	g.B.WL("return 0, err")
 	g.B.WL("}")
-	g.B.WL("n,err:=r.RowsAffected()")
-	g.B.WL("if err!=nil {")
+	g.B.WL("n,err := r.RowsAffected()")
+	g.B.WL("if err != nil {")
 	g.B.WL("return 0, err")
 	g.B.WL("}")
 	g.B.WL("return n, nil")
@@ -479,8 +517,8 @@ func (g *gen) genRmByPK() {
 	g.B.WL("if err != nil {")
 	g.B.WL("return 0, err")
 	g.B.WL("}")
-	g.B.WL("n,err:=r.RowsAffected()")
-	g.B.WL("if err!=nil {")
+	g.B.WL("n,err := r.RowsAffected()")
+	g.B.WL("if err != nil {")
 	g.B.WL("return 0, err")
 	g.B.WL("}")
 	g.B.WL("return n, nil")
@@ -506,7 +544,7 @@ func (g *gen) genRmByRule() {
 	g.B.WL("if err != nil {")
 	g.B.WL("return 0, err")
 	g.B.WL("}")
-	g.B.WL("n,err:=r.RowsAffected()")
+	g.B.WL("n,err := r.RowsAffected()")
 	g.B.WL("if err!=nil {")
 	g.B.WL("return 0, err")
 	g.B.WL("}")

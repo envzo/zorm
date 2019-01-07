@@ -93,6 +93,18 @@ func (mgr *_PodUserMgr) UpdateByNicknameMobilePhone(d *PodUser) (int64, error) {
 	return n, nil
 }
 
+func (mgr *_PodUserMgr) UniRmByNicknameMobilePhone(d *PodUser) (int64, error) {
+	r, err := db.DB().Exec(`delete from pod.pod_user where nickname = ? and mobile_phone = ?`, d.Nickname, d.MobilePhone)
+	if err != nil {
+		return 0, err
+	}
+	n, err := r.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
 func (mgr *_PodUserMgr) IsMobilePhoneExists(mobilePhone string) (bool, error) {
 	row := db.DB().QueryRow(`select count(1) from pod.pod_user where mobile_phone = ?`,
 		mobilePhone)
@@ -138,6 +150,18 @@ func (mgr *_PodUserMgr) UniFindByMobilePhone(mobilePhone string) (*PodUser, erro
 
 func (mgr *_PodUserMgr) UpdateByMobilePhone(d *PodUser) (int64, error) {
 	r, err := db.DB().Exec(`update pod.pod_user set password = ?, age = ?, create_dt = ?, is_blocked = ?, update_dt = ? where mobile_phone = ?`, d.Password, d.Age, d.CreateDt, d.IsBlocked, d.UpdateDt, d.MobilePhone)
+	if err != nil {
+		return 0, err
+	}
+	n, err := r.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
+func (mgr *_PodUserMgr) UniRmByMobilePhone(d *PodUser) (int64, error) {
+	r, err := db.DB().Exec(`delete from pod.pod_user where mobile_phone = ?`, d.MobilePhone)
 	if err != nil {
 		return 0, err
 	}
