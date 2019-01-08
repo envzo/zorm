@@ -22,7 +22,8 @@ func (g *gen) genORM(pkg string) []byte {
 	g.B.WL(`"errors"`)
 	g.B.WL(`"fmt"`)
 	g.B.WL(`"database/sql"`)
-	g.B.WL2(`"strings"`)
+	g.B.WL(`"strings"`)
+	g.B.WL2(`"time"`)
 	g.B.WL(`"github.com/envzo/zorm/db"`)
 	g.B.WL(`"github.com/envzo/zorm/util"`)
 	g.B.WL2(`)`)
@@ -32,6 +33,7 @@ func (g *gen) genORM(pkg string) []byte {
 	g.B.WL(`var _ = strings.Trim`)
 	g.B.WL(`var _ = sql.ErrNoRows`)
 	g.B.WL(`var _ = util.I64`)
+	g.B.WL(`var _ = time.Nanosecond`)
 
 	g.B.WL("type ", g.T, " struct {")
 	for _, f := range g.x.Fs {

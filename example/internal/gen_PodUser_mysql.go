@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/envzo/zorm/db"
 	"github.com/envzo/zorm/util"
@@ -18,6 +19,7 @@ var _ = fmt.Printf
 var _ = strings.Trim
 var _ = sql.ErrNoRows
 var _ = util.I64
+var _ = time.Nanosecond
 
 type PodUser struct {
 	Id          int64
