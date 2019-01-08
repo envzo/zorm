@@ -44,7 +44,7 @@ type _PodUserMgr struct{}
 var PodUserMgr = &_PodUserMgr{}
 
 func (mgr *_PodUserMgr) IsNicknameMobilePhoneExists(nickname string, mobilePhone string) (bool, error) {
-	row := db.DB().QueryRow(`select count(1) from pod.pod_user where nickname = ?, mobile_phone = ?`,
+	row := db.DB().QueryRow(`select count(1) from pod.pod_user where nickname = ? and mobile_phone = ?`,
 		nickname, mobilePhone)
 
 	var c sql.NullInt64

@@ -106,7 +106,7 @@ func (g *gen) genIsExists(args []*parse.F) {
 
 	for i, f := range args {
 		if i > 0 {
-			g.B.W(", ")
+			g.B.W(" and ")
 		}
 		g.B.W(f.Name, " = ?")
 	}
