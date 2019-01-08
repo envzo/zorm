@@ -61,10 +61,7 @@ func DerefNilSqlType(n, t string) string {
 	case cls.YamlStr:
 		return n + ".String"
 	case cls.YamlDate:
-		if n == "" {
-			return "nil"
-		}
-		return `util.MustParseDateStr(` + n + `.String)`
+		return `util.SafeParseDateStr(` + n + `.String)`
 	case cls.YamlBool:
 		return n + ".Bool"
 	default:
