@@ -24,12 +24,14 @@ func (g *gen) genORM(pkg string) []byte {
 	g.B.WL(`"database/sql"`)
 	g.B.WL2(`"strings"`)
 	g.B.WL(`"github.com/envzo/zorm/db"`)
+	g.B.WL(`"github.com/envzo/zorm/util"`)
 	g.B.WL2(`)`)
 
 	g.B.WL(`var _ = errors.New`)
 	g.B.WL(`var _ = fmt.Printf`)
 	g.B.WL(`var _ = strings.Trim`)
 	g.B.WL(`var _ = sql.ErrNoRows`)
+	g.B.WL(`var _ = util.I64`)
 
 	g.B.WL("type ", g.T, " struct {")
 	for _, f := range g.x.Fs {
@@ -206,14 +208,10 @@ func (g *gen) genUniFind(args []*parse.F) {
 	g.B.W("return nil, err")
 	g.B.WL2("}")
 
-	g.B.WL("d := ", g.T, "{")
+	g.B.WL("d := ", g.T, "{}")
 	for _, f := range g.x.Fs {
-		g.B.W(f.Camel, ":")
-		g.B.W(util.DerefNilSqlType(vm[f.Camel], f.T))
-
-		g.B.WL(",")
+		g.B.W("d.", f.Camel, "=", util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
 	}
-	g.B.WL2("}")
 
 	g.B.W("return &d, nil")
 
@@ -458,14 +456,10 @@ func (g *gen) genUniFindByPk() {
 	g.B.W("return nil, err")
 	g.B.WL2("}")
 
-	g.B.WL("d := ", g.T, "{")
+	g.B.WL("d := ", g.T, "{}")
 	for _, f := range g.x.Fs {
-		g.B.W(f.Camel, ":")
-		g.B.W(util.DerefNilSqlType(vm[f.Camel], f.T))
-
-		g.B.WL(",")
+		g.B.W("d.", f.Camel, "=", util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
 	}
-	g.B.WL2("}")
 
 	g.B.W("return &d, nil")
 
@@ -661,14 +655,10 @@ func (g *gen) genFindByIndex(args []*parse.F) {
 	g.B.W("return nil, err")
 	g.B.WL2("}")
 
-	g.B.WL("d := ", g.T, "{")
+	g.B.WL("d := ", g.T, "{}")
 	for _, f := range g.x.Fs {
-		g.B.W(f.Camel, ":")
-		g.B.W(util.DerefNilSqlType(vm[f.Camel], f.T))
-
-		g.B.WL(",")
+		g.B.W("d.", f.Camel, "=", util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
 	}
-	g.B.WL("}")
 
 	g.B.WL("ret = append(ret, &d)")
 
@@ -682,11 +672,9 @@ func (g *gen) genFindByIndex(args []*parse.F) {
 func (g *gen) genFindByJoin() {
 	g.B.W("func (mgr", " *_", g.T, "Mgr) FindByJoin(t string, on, where []db.Rule, order []string, offset, limit int64) ")
 	g.B.W("([]*" + g.T + ", error)").WL("{")
-
 	g.B.WL("return mgr.FindByMultiJoin([]db.Join{")
 	g.B.WL("	{T: t, Rule: on},")
 	g.B.WL("}, where, order, offset, limit)")
-
 	g.B.WL("}")
 }
 
@@ -800,14 +788,11 @@ func (g *gen) genFindByMultiJoin() {
 	g.B.W("return nil, err")
 	g.B.WL2("}")
 
-	g.B.WL("d := ", g.T, "{")
+	g.B.WL("d := ", g.T, "{}")
 	for _, f := range g.x.Fs {
-		g.B.W(f.Camel, ":")
-		g.B.W(util.DerefNilSqlType(vm[f.Camel], f.T))
-
-		g.B.WL(",")
+		g.B.W("d.", f.Camel, "=")
+		g.B.W(util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
 	}
-	g.B.WL("}")
 
 	g.B.WL("ret = append(ret, &d)")
 
@@ -968,14 +953,10 @@ func (g *gen) genFindByCond() {
 	g.B.W("return nil, err")
 	g.B.WL2("}")
 
-	g.B.WL("d := ", g.T, "{")
+	g.B.WL("d := ", g.T, "{}")
 	for _, f := range g.x.Fs {
-		g.B.W(f.Camel, ":")
-		g.B.W(util.DerefNilSqlType(vm[f.Camel], f.T))
-
-		g.B.WL(",")
+		g.B.W("d.", f.Camel, "=", util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
 	}
-	g.B.WL("}")
 
 	g.B.WL("ret = append(ret, &d)")
 

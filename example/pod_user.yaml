@@ -24,6 +24,7 @@ pod_user:
     - update_dt: timestamp
       __nullable: false
       __comment: 更新时间
+    - stats_dt: date
   pk: id
   uniques: [[nickname,mobile_phone], [mobile_phone]]
   indexes: [[create_dt], [update_dt]]

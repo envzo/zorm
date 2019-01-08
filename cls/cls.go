@@ -7,5 +7,6 @@ const (
 	YamlStr       = "str"
 	YamlBool      = "bool"
 	YamlFloat     = "float"
+	YamlDate      = "date"
 	YamlTimestamp = "timestamp"
 )

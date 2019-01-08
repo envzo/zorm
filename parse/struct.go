@@ -22,6 +22,7 @@ var (
 		cls.YamlTimestamp: true,
 		cls.YamlFloat:     true,
 		cls.YamlBool:      true,
+		cls.YamlDate:      true,
 	}
 )
 
