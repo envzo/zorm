@@ -3,7 +3,7 @@ package util
 import "time"
 
 func ParseDateStr(s string) (*time.Time, error) {
-	t, err := time.Parse("2006-01-02", s)
+	t, err := time.Parse(time.RFC3339, s)
 	if err != nil {
 		return nil, err
 	}
@@ -13,7 +13,7 @@ func ParseDateStr(s string) (*time.Time, error) {
 }
 
 func SafeParseDateStr(s string) *time.Time {
-	t, err := time.Parse("2006-01-02T15:04:05Z07:00", s)
+	t, err := time.Parse(time.RFC3339, s)
 	if err != nil {
 		return nil
 	}
