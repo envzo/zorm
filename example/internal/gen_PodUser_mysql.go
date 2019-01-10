@@ -82,7 +82,7 @@ func (mgr *_PodUserMgr) UniFindByNicknameMobilePhone(nickname string, mobilePhon
 	d.CreateDt = createDt.Int64
 	d.IsBlocked = isBlocked.Bool
 	d.UpdateDt = updateDt.Int64
-	d.StatsDt = util.MustParseDateStr(statsDt.String)
+	d.StatsDt = util.SafeParseDateStr(statsDt.String)
 	return &d, nil
 }
 
@@ -149,7 +149,7 @@ func (mgr *_PodUserMgr) UniFindByMobilePhone(mobilePhone string) (*PodUser, erro
 	d.CreateDt = createDt.Int64
 	d.IsBlocked = isBlocked.Bool
 	d.UpdateDt = updateDt.Int64
-	d.StatsDt = util.MustParseDateStr(statsDt.String)
+	d.StatsDt = util.SafeParseDateStr(statsDt.String)
 	return &d, nil
 }
 
@@ -229,7 +229,7 @@ func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, l
 		d.CreateDt = createDt_1.Int64
 		d.IsBlocked = isBlocked.Bool
 		d.UpdateDt = updateDt.Int64
-		d.StatsDt = util.MustParseDateStr(statsDt.String)
+		d.StatsDt = util.SafeParseDateStr(statsDt.String)
 		ret = append(ret, &d)
 	}
 	return ret, nil
@@ -300,7 +300,7 @@ func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order []string, offset, l
 		d.CreateDt = createDt.Int64
 		d.IsBlocked = isBlocked.Bool
 		d.UpdateDt = updateDt_1.Int64
-		d.StatsDt = util.MustParseDateStr(statsDt.String)
+		d.StatsDt = util.SafeParseDateStr(statsDt.String)
 		ret = append(ret, &d)
 	}
 	return ret, nil
@@ -396,7 +396,7 @@ func (mgr *_PodUserMgr) FindByMultiJoin(joins []db.Join, where []db.Rule, order 
 		d.CreateDt = createDt.Int64
 		d.IsBlocked = isBlocked.Bool
 		d.UpdateDt = updateDt.Int64
-		d.StatsDt = util.MustParseDateStr(statsDt.String)
+		d.StatsDt = util.SafeParseDateStr(statsDt.String)
 		ret = append(ret, &d)
 	}
 	return ret, nil
@@ -507,7 +507,7 @@ func (mgr *_PodUserMgr) FindByCond(where []db.Rule, order []string, offset, limi
 		d.CreateDt = createDt.Int64
 		d.IsBlocked = isBlocked.Bool
 		d.UpdateDt = updateDt.Int64
-		d.StatsDt = util.MustParseDateStr(statsDt.String)
+		d.StatsDt = util.SafeParseDateStr(statsDt.String)
 		ret = append(ret, &d)
 	}
 	return ret, nil
@@ -605,7 +605,7 @@ func (mgr *_PodUserMgr) UniFindByPK(id int64) (*PodUser, error) {
 	d.CreateDt = createDt.Int64
 	d.IsBlocked = isBlocked.Bool
 	d.UpdateDt = updateDt.Int64
-	d.StatsDt = util.MustParseDateStr(statsDt.String)
+	d.StatsDt = util.SafeParseDateStr(statsDt.String)
 	return &d, nil
 }
 
@@ -632,4 +632,13 @@ func (mgr *_PodUserMgr) RmByPK(pk int64) (int64, error) {
 		return 0, err
 	}
 	return n, nil
+}
+func (mgr *_PodUserMgr) IsExistsByPK(pk int64) (bool, error) {
+	row := db.DB().QueryRow(`select count(1) from pod.pod_user where id = ?`)
+	var c sql.NullInt64
+
+	if err := row.Scan(&c); err != nil {
+		return false, err
+	}
+	return c.Int64 > 0, nil
 }

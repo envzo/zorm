@@ -75,6 +75,7 @@ func (g *gen) genORM(pkg string) []byte {
 		g.genUniFindByPk()
 		g.genUpdateByPK().Ln()
 		g.genRmByPK()
+		g.genIsExistsByPK()
 	}
 
 	return g.B.Bytes()
@@ -126,6 +127,17 @@ func (g *gen) genIsExists(args []*parse.F) {
 	g.B.WL("}")
 	g.B.W("return c.Int64 > 0, nil")
 
+	g.B.WL2("}")
+}
+
+func (g *gen) genIsExistsByPK() {
+	g.B.WL("func (mgr", " *_", g.T, "Mgr) IsExistsByPK(pk ", g.x.PK.GoT, ") (bool, error) {")
+	g.B.WL("row := db.DB().QueryRow(`select count(1) from ", g.x.DB, ".", g.x.TB, " where ", g.x.PK.Name, " = ?`)")
+	g.B.WL("var c sql.NullInt64")
+	g.B.Ln().WL("if err := row.Scan(&c); err!= nil {")
+	g.B.WL("return false, err")
+	g.B.WL("}")
+	g.B.WL("return c.Int64 > 0, nil")
 	g.B.WL2("}")
 }
 
