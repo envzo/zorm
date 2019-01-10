@@ -132,7 +132,7 @@ func (g *gen) genIsExists(args []*parse.F) {
 
 func (g *gen) genIsExistsByPK() {
 	g.B.WL("func (mgr", " *_", g.T, "Mgr) IsExistsByPK(pk ", g.x.PK.GoT, ") (bool, error) {")
-	g.B.WL("row := db.DB().QueryRow(`select count(1) from ", g.x.DB, ".", g.x.TB, " where ", g.x.PK.Name, " = ?`)")
+	g.B.WL("row := db.DB().QueryRow(`select count(1) from ", g.x.DB, ".", g.x.TB, " where ", g.x.PK.Name, " = ?`, pk)")
 	g.B.WL("var c sql.NullInt64")
 	g.B.Ln().WL("if err := row.Scan(&c); err!= nil {")
 	g.B.WL("return false, err")
