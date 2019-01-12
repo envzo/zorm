@@ -513,6 +513,71 @@ func (mgr *_PodUserMgr) FindByCond(where []db.Rule, order []string, offset, limi
 	return ret, nil
 }
 
+func (mgr *_PodUserMgr) FindAllByCond(where []db.Rule, order []string) ([]*PodUser, error) {
+	var params []interface{}
+
+	query := `select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt from pod.pod_user where `
+	for i, v := range where {
+		if i > 0 {
+			query += " and "
+		}
+		query += v.S
+		if v.P != nil {
+			params = append(params, v.P)
+		}
+	}
+	for i, o := range order {
+		if i == 0 {
+			query += " order by "
+		} else if i != len(order)-1 {
+			query += ", "
+		}
+		if strings.HasPrefix(o, "-") {
+			query += o[1:]
+		} else {
+			query += o
+		}
+		if o[0] == '-' {
+			query += " desc"
+		}
+	}
+	rows, err := db.DB().Query(query, params...)
+	if err != nil {
+		return nil, err
+	}
+
+	var id sql.NullInt64
+	var nickname sql.NullString
+	var password sql.NullString
+	var age sql.NullInt64
+	var mobilePhone sql.NullString
+	var createDt sql.NullInt64
+	var isBlocked sql.NullBool
+	var updateDt sql.NullInt64
+	var statsDt sql.NullString
+
+	var ret []*PodUser
+
+	for rows.Next() {
+		if err = rows.Scan(&id, &nickname, &password, &age, &mobilePhone, &createDt, &isBlocked, &updateDt, &statsDt); err != nil {
+			return nil, err
+		}
+
+		d := PodUser{}
+		d.Id = id.Int64
+		d.Nickname = nickname.String
+		d.Password = password.String
+		d.Age = int32(age.Int64)
+		d.MobilePhone = mobilePhone.String
+		d.CreateDt = createDt.Int64
+		d.IsBlocked = isBlocked.Bool
+		d.UpdateDt = updateDt.Int64
+		d.StatsDt = util.SafeParseDateStr(statsDt.String)
+		ret = append(ret, &d)
+	}
+	return ret, nil
+}
+
 func (mgr *_PodUserMgr) Create(d *PodUser) error {
 	r, err := db.DB().Exec(`insert into pod.pod_user (nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt) value (?,?,?,?,?,?,?,?)`, d.Nickname, d.Password, d.Age, d.MobilePhone, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt)
 	if err != nil {
@@ -634,7 +699,7 @@ func (mgr *_PodUserMgr) RmByPK(pk int64) (int64, error) {
 	return n, nil
 }
 func (mgr *_PodUserMgr) IsExistsByPK(pk int64) (bool, error) {
-	row := db.DB().QueryRow(`select count(1) from pod.pod_user where id = ?`)
+	row := db.DB().QueryRow(`select count(1) from pod.pod_user where id = ?`, pk)
 	var c sql.NullInt64
 
 	if err := row.Scan(&c); err != nil {

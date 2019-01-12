@@ -66,6 +66,7 @@ func (g *gen) genORM(pkg string) []byte {
 	g.genCountByMultiJoin()
 	g.genFindByJoin()
 	g.genFindByCond()
+	g.genFindAllByCond()
 	g.genCreate().Ln()
 	g.genUpsert().Ln()
 	g.genCountByRule()
@@ -916,6 +917,111 @@ func (g *gen) genFindByCond() {
 	g.B.WL("if offset != -1 && limit != -1 {")
 	g.B.WL(`query += fmt.Sprintf(" limit %d, %d", offset, limit)`)
 	g.B.WL2("}")
+	// end make query sql
+
+	g.B.WL("rows, err := db.DB().Query(query, params...)")
+	g.B.WL("if err != nil {")
+	g.B.WL("return nil,err")
+	g.B.WL2("}")
+
+	// temp variables
+	vm := map[string]string{}
+
+	args := map[string]bool{
+		"t":      true,
+		"on":     true,
+		"where":  true,
+		"order":  true,
+		"offset": true,
+		"limit":  true,
+	}
+
+	for _, f := range g.x.Fs {
+		n := util.LowerFirstLetter(f.Camel)
+
+		if n == "type" {
+			n += "_"
+		}
+
+		if _, ok := args[f.Name]; ok {
+			n += "_1"
+		}
+
+		g.B.W("var ", n)
+		vm[f.Camel] = n
+
+		g.B.Spc().WL(util.NilSqlType(f.T))
+	}
+
+	g.B.Ln().WL2("var ret []*", g.T)
+
+	g.B.WL("for rows.Next() {")
+
+	g.B.W("if err = rows.Scan(")
+	for i, f := range g.x.Fs {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W("&", vm[f.Camel])
+	}
+	g.B.W("); err != nil {")
+	g.B.W("return nil, err")
+	g.B.WL2("}")
+
+	g.B.WL("d := ", g.T, "{}")
+	for _, f := range g.x.Fs {
+		g.B.W("d.", f.Camel, "=", util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
+	}
+
+	g.B.WL("ret = append(ret, &d)")
+
+	g.B.WL("}") // end rows loop
+
+	g.B.W("return ret, nil")
+
+	g.B.WL2("}")
+}
+
+func (g *gen) genFindAllByCond() {
+	g.B.W("func (mgr", " *_", g.T, "Mgr) FindAllByCond(where []db.Rule, order []string)")
+	g.B.Spc().W("([]*" + g.T + ", error)").WL("{")
+
+	g.B.WL2("var params []interface{}")
+
+	// make query sel
+	g.B.W("query := `select ")
+	for i, f := range g.x.Fs {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(f.Name)
+	}
+	g.B.WL(" from ", g.x.DB, ".", g.x.TB, " where `")
+	g.B.WL(`for i, v := range where {`)
+	g.B.WL(`	if i > 0 {`)
+	g.B.WL(`		query += " and "`)
+	g.B.WL(`	}`)
+	g.B.WL(`	query += v.S`)
+	g.B.WL(`	if v.P != nil {`)
+	g.B.WL(`		params = append(params, v.P)`)
+	g.B.WL(`	}`)
+	g.B.WL(`}`)
+
+	g.B.WL("for i, o := range order {")
+	g.B.WL("if i == 0 {")
+	g.B.WL(`query += " order by "`)
+	g.B.WL("} else if i != len(order)-1 {")
+	g.B.WL(`query += ", "`)
+	g.B.WL("}")
+	g.B.WL(`if strings.HasPrefix(o, "-") {`)
+	g.B.WL("	query += o[1:]")
+	g.B.WL("} else {")
+	g.B.WL("	query += o")
+	g.B.WL("}")
+	g.B.WL("if o[0] == '-' {")
+	g.B.WL(`query += " desc"`)
+	g.B.WL("}")
+	g.B.WL("}")
 	// end make query sql
 
 	g.B.WL("rows, err := db.DB().Query(query, params...)")
