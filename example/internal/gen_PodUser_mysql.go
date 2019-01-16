@@ -460,7 +460,7 @@ func (mgr *_PodUserMgr) FindByCond(where []db.Rule, order []string, offset, limi
 	for i, o := range order {
 		if i == 0 {
 			query += " order by "
-		} else if i != len(order)-1 {
+		} else {
 			query += ", "
 		}
 		if strings.HasPrefix(o, "-") {
@@ -529,7 +529,7 @@ func (mgr *_PodUserMgr) FindAllByCond(where []db.Rule, order []string) ([]*PodUs
 	for i, o := range order {
 		if i == 0 {
 			query += " order by "
-		} else if i != len(order)-1 {
+		} else {
 			query += ", "
 		}
 		if strings.HasPrefix(o, "-") {
