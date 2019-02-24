@@ -185,7 +185,11 @@ func (g *gen) genUniFind(args []*parse.F) {
 		if i > 0 {
 			g.B.W(", ")
 		}
-		g.B.W(util.LowerFirstLetter(f.Camel)).Spc()
+		if f.T == cls.YamlDate {
+			g.B.W(util.LowerFirstLetter(f.Camel), `.Format("2006-01-02")`).Spc()
+		} else {
+			g.B.W(util.LowerFirstLetter(f.Camel)).Spc()
+		}
 	}
 	g.B.WL2(")")
 
@@ -996,9 +1000,11 @@ func (g *gen) genFindAllByCond() {
 		}
 		g.B.W(f.Name)
 	}
-	g.B.WL(" from ", g.x.DB, ".", g.x.TB, " where `")
+	g.B.WL(" from ", g.x.DB, ".", g.x.TB, " `")
 	g.B.WL(`for i, v := range where {`)
-	g.B.WL(`	if i > 0 {`)
+	g.B.WL(`	if i == 0 {`)
+	g.B.WL(`		query += " where "`)
+	g.B.WL(`	} else if i > 0 {`)
 	g.B.WL(`		query += " and "`)
 	g.B.WL(`	}`)
 	g.B.WL(`	query += v.S`)
