@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"sync"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -18,6 +19,7 @@ func Open(t, dsn string, openConn, idleConn int) error {
 		db, err = sql.Open(t, dsn)
 		db.SetMaxOpenConns(openConn)
 		db.SetMaxIdleConns(idleConn)
+		db.SetConnMaxLifetime(10 * time.Minute)
 	})
 	if err != nil {
 		return err
