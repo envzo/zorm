@@ -9,5 +9,6 @@ const (
 	YamlFloat     = "float"
 	YamlDouble    = "double"
 	YamlDate      = "date"
+	YamlDateTime  = "datetime"
 	YamlTimestamp = "timestamp"
 )

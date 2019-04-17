@@ -31,7 +31,7 @@ func GoT(in string) string {
 		return Float32
 	case cls.YamlDouble:
 		return Float64
-	case cls.YamlDate:
+	case cls.YamlDate, cls.YamlDateTime:
 		return Time
 	default:
 		panic("unknown type: " + in)
@@ -42,7 +42,7 @@ func NilSqlType(in string) string {
 	switch in {
 	case cls.YamlI32, cls.YamlI64, cls.YamlTimestamp:
 		return "sql.NullInt64"
-	case cls.YamlStr, cls.YamlDate:
+	case cls.YamlStr, cls.YamlDate, cls.YamlDateTime:
 		return "sql.NullString"
 	case cls.YamlBool:
 		return "sql.NullBool"
@@ -67,6 +67,8 @@ func DerefNilSqlType(n, t string) string {
 		return n + ".String"
 	case cls.YamlDate:
 		return `util.SafeParseDateStr(` + n + `.String)`
+	case cls.YamlDateTime:
+		return `util.SafeParseDateTimeStr(` + n + `.String)`
 	case cls.YamlBool:
 		return n + ".Bool"
 	default:
@@ -90,6 +92,8 @@ func SqlTypeName(in string) string {
 		return "double"
 	case cls.YamlDate:
 		return "date"
+	case cls.YamlDateTime:
+		return "datetime"
 	default:
 		panic("unknown type: " + in)
 	}

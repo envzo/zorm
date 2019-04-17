@@ -10,6 +10,7 @@ create table if not exists `pod_user` (
   `is_blocked` tinyint(1) not null,
   `update_dt` bigint not null comment '更新时间',
   `stats_dt` date not null,
+  `dt` datetime not null,
   primary key (`id`),
   unique key `uni_nickname_mobile_phone` (`nickname`, `mobile_phone`),
   unique key `uni_mobile_phone` (`mobile_phone`),
