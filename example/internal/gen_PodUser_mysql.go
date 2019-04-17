@@ -31,6 +31,7 @@ type PodUser struct {
 	IsBlocked   bool
 	UpdateDt    int64
 	StatsDt     *time.Time
+	Dt          *time.Time
 
 	baby bool
 }
@@ -56,7 +57,7 @@ func (mgr *_PodUserMgr) IsNicknameMobilePhoneExists(nickname string, mobilePhone
 }
 
 func (mgr *_PodUserMgr) UniFindByNicknameMobilePhone(nickname string, mobilePhone string) (*PodUser, error) {
-	row := db.DB().QueryRow(`select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt from pod.pod_user where nickname = ? and mobile_phone = ?`,
+	row := db.DB().QueryRow(`select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where nickname = ? and mobile_phone = ?`,
 		nickname, mobilePhone)
 
 	var id sql.NullInt64
@@ -68,8 +69,9 @@ func (mgr *_PodUserMgr) UniFindByNicknameMobilePhone(nickname string, mobilePhon
 	var isBlocked sql.NullBool
 	var updateDt sql.NullInt64
 	var statsDt sql.NullString
+	var dt sql.NullString
 
-	if err := row.Scan(&id, &nickname_1, &password, &age, &mobilePhone_1, &createDt, &isBlocked, &updateDt, &statsDt); err != nil {
+	if err := row.Scan(&id, &nickname_1, &password, &age, &mobilePhone_1, &createDt, &isBlocked, &updateDt, &statsDt, &dt); err != nil {
 		return nil, err
 	}
 
@@ -83,11 +85,12 @@ func (mgr *_PodUserMgr) UniFindByNicknameMobilePhone(nickname string, mobilePhon
 	d.IsBlocked = isBlocked.Bool
 	d.UpdateDt = updateDt.Int64
 	d.StatsDt = util.SafeParseDateStr(statsDt.String)
+	d.Dt = util.SafeParseDateTimeStr(dt.String)
 	return &d, nil
 }
 
 func (mgr *_PodUserMgr) UpdateByNicknameMobilePhone(d *PodUser) (int64, error) {
-	r, err := db.DB().Exec(`update pod.pod_user set password = ?, age = ?, create_dt = ?, is_blocked = ?, update_dt = ?, stats_dt = ? where nickname = ? and mobile_phone = ?`, d.Password, d.Age, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Nickname, d.MobilePhone)
+	r, err := db.DB().Exec(`update pod.pod_user set password = ?, age = ?, create_dt = ?, is_blocked = ?, update_dt = ?, stats_dt = ?, dt = ? where nickname = ? and mobile_phone = ?`, d.Password, d.Age, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Dt, d.Nickname, d.MobilePhone)
 	if err != nil {
 		return 0, err
 	}
@@ -123,7 +126,7 @@ func (mgr *_PodUserMgr) IsMobilePhoneExists(mobilePhone string) (bool, error) {
 }
 
 func (mgr *_PodUserMgr) UniFindByMobilePhone(mobilePhone string) (*PodUser, error) {
-	row := db.DB().QueryRow(`select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt from pod.pod_user where mobile_phone = ?`,
+	row := db.DB().QueryRow(`select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where mobile_phone = ?`,
 		mobilePhone)
 
 	var id sql.NullInt64
@@ -135,8 +138,9 @@ func (mgr *_PodUserMgr) UniFindByMobilePhone(mobilePhone string) (*PodUser, erro
 	var isBlocked sql.NullBool
 	var updateDt sql.NullInt64
 	var statsDt sql.NullString
+	var dt sql.NullString
 
-	if err := row.Scan(&id, &nickname, &password, &age, &mobilePhone_1, &createDt, &isBlocked, &updateDt, &statsDt); err != nil {
+	if err := row.Scan(&id, &nickname, &password, &age, &mobilePhone_1, &createDt, &isBlocked, &updateDt, &statsDt, &dt); err != nil {
 		return nil, err
 	}
 
@@ -150,11 +154,12 @@ func (mgr *_PodUserMgr) UniFindByMobilePhone(mobilePhone string) (*PodUser, erro
 	d.IsBlocked = isBlocked.Bool
 	d.UpdateDt = updateDt.Int64
 	d.StatsDt = util.SafeParseDateStr(statsDt.String)
+	d.Dt = util.SafeParseDateTimeStr(dt.String)
 	return &d, nil
 }
 
 func (mgr *_PodUserMgr) UpdateByMobilePhone(d *PodUser) (int64, error) {
-	r, err := db.DB().Exec(`update pod.pod_user set password = ?, age = ?, create_dt = ?, is_blocked = ?, update_dt = ?, stats_dt = ? where mobile_phone = ?`, d.Password, d.Age, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.MobilePhone)
+	r, err := db.DB().Exec(`update pod.pod_user set password = ?, age = ?, create_dt = ?, is_blocked = ?, update_dt = ?, stats_dt = ?, dt = ? where mobile_phone = ?`, d.Password, d.Age, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Dt, d.MobilePhone)
 	if err != nil {
 		return 0, err
 	}
@@ -178,7 +183,7 @@ func (mgr *_PodUserMgr) UniRmByMobilePhone(d *PodUser) (int64, error) {
 }
 
 func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, limit int64) ([]*PodUser, error) {
-	query := `select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt from pod.pod_user where create_dt = ?`
+	query := `select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where create_dt = ?`
 	for i, o := range order {
 		if i == 0 {
 			query += " order by "
@@ -212,11 +217,12 @@ func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, l
 	var isBlocked sql.NullBool
 	var updateDt sql.NullInt64
 	var statsDt sql.NullString
+	var dt sql.NullString
 
 	var ret []*PodUser
 
 	for rows.Next() {
-		if err = rows.Scan(&id, &nickname, &password, &age, &mobilePhone, &createDt_1, &isBlocked, &updateDt, &statsDt); err != nil {
+		if err = rows.Scan(&id, &nickname, &password, &age, &mobilePhone, &createDt_1, &isBlocked, &updateDt, &statsDt, &dt); err != nil {
 			return nil, err
 		}
 
@@ -230,6 +236,7 @@ func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, l
 		d.IsBlocked = isBlocked.Bool
 		d.UpdateDt = updateDt.Int64
 		d.StatsDt = util.SafeParseDateStr(statsDt.String)
+		d.Dt = util.SafeParseDateTimeStr(dt.String)
 		ret = append(ret, &d)
 	}
 	return ret, nil
@@ -249,7 +256,7 @@ func (mgr *_PodUserMgr) CountByCreateDt(createDt int64) (int64, error) {
 }
 
 func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order []string, offset, limit int64) ([]*PodUser, error) {
-	query := `select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt from pod.pod_user where update_dt = ?`
+	query := `select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where update_dt = ?`
 	for i, o := range order {
 		if i == 0 {
 			query += " order by "
@@ -283,11 +290,12 @@ func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order []string, offset, l
 	var isBlocked sql.NullBool
 	var updateDt_1 sql.NullInt64
 	var statsDt sql.NullString
+	var dt sql.NullString
 
 	var ret []*PodUser
 
 	for rows.Next() {
-		if err = rows.Scan(&id, &nickname, &password, &age, &mobilePhone, &createDt, &isBlocked, &updateDt_1, &statsDt); err != nil {
+		if err = rows.Scan(&id, &nickname, &password, &age, &mobilePhone, &createDt, &isBlocked, &updateDt_1, &statsDt, &dt); err != nil {
 			return nil, err
 		}
 
@@ -301,6 +309,7 @@ func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order []string, offset, l
 		d.IsBlocked = isBlocked.Bool
 		d.UpdateDt = updateDt_1.Int64
 		d.StatsDt = util.SafeParseDateStr(statsDt.String)
+		d.Dt = util.SafeParseDateTimeStr(dt.String)
 		ret = append(ret, &d)
 	}
 	return ret, nil
@@ -322,7 +331,7 @@ func (mgr *_PodUserMgr) CountByUpdateDt(updateDt int64) (int64, error) {
 func (mgr *_PodUserMgr) FindByMultiJoin(joins []db.Join, where []db.Rule, order []string, offset, limit int64) ([]*PodUser, error) {
 	var params []interface{}
 
-	query := `select pod_user.id, pod_user.nickname, pod_user.password, pod_user.age, pod_user.mobile_phone, pod_user.create_dt, pod_user.is_blocked, pod_user.update_dt, pod_user.stats_dt from pod.pod_user`
+	query := `select pod_user.id, pod_user.nickname, pod_user.password, pod_user.age, pod_user.mobile_phone, pod_user.create_dt, pod_user.is_blocked, pod_user.update_dt, pod_user.stats_dt, pod_user.dt from pod.pod_user`
 	for _, join := range joins {
 		query += ` join pod.` + join.T + ` on `
 		for i, v := range join.Rule {
@@ -379,11 +388,12 @@ func (mgr *_PodUserMgr) FindByMultiJoin(joins []db.Join, where []db.Rule, order 
 	var isBlocked sql.NullBool
 	var updateDt sql.NullInt64
 	var statsDt sql.NullString
+	var dt sql.NullString
 
 	var ret []*PodUser
 
 	for rows.Next() {
-		if err = rows.Scan(&id, &nickname, &password, &age, &mobilePhone, &createDt, &isBlocked, &updateDt, &statsDt); err != nil {
+		if err = rows.Scan(&id, &nickname, &password, &age, &mobilePhone, &createDt, &isBlocked, &updateDt, &statsDt, &dt); err != nil {
 			return nil, err
 		}
 
@@ -397,6 +407,7 @@ func (mgr *_PodUserMgr) FindByMultiJoin(joins []db.Join, where []db.Rule, order 
 		d.IsBlocked = isBlocked.Bool
 		d.UpdateDt = updateDt.Int64
 		d.StatsDt = util.SafeParseDateStr(statsDt.String)
+		d.Dt = util.SafeParseDateTimeStr(dt.String)
 		ret = append(ret, &d)
 	}
 	return ret, nil
@@ -405,7 +416,7 @@ func (mgr *_PodUserMgr) FindByMultiJoin(joins []db.Join, where []db.Rule, order 
 func (mgr *_PodUserMgr) CountByMultiJoin(joins []db.Join, where []db.Rule) (int64, error) {
 	var params []interface{}
 
-	query := `select count(1) from (select pod_user.id, pod_user.nickname, pod_user.password, pod_user.age, pod_user.mobile_phone, pod_user.create_dt, pod_user.is_blocked, pod_user.update_dt, pod_user.stats_dt from pod.pod_user`
+	query := `select count(1) from (select pod_user.id, pod_user.nickname, pod_user.password, pod_user.age, pod_user.mobile_phone, pod_user.create_dt, pod_user.is_blocked, pod_user.update_dt, pod_user.stats_dt, pod_user.dt from pod.pod_user`
 	for _, join := range joins {
 		query += ` join pod.` + join.T + ` on `
 		for i, v := range join.Rule {
@@ -447,7 +458,7 @@ func (mgr *_PodUserMgr) FindByJoin(t string, on, where []db.Rule, order []string
 func (mgr *_PodUserMgr) FindByCond(where []db.Rule, order []string, offset, limit int64) ([]*PodUser, error) {
 	var params []interface{}
 
-	query := `select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt from pod.pod_user where `
+	query := `select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where `
 	for i, v := range where {
 		if i > 0 {
 			query += " and "
@@ -490,11 +501,12 @@ func (mgr *_PodUserMgr) FindByCond(where []db.Rule, order []string, offset, limi
 	var isBlocked sql.NullBool
 	var updateDt sql.NullInt64
 	var statsDt sql.NullString
+	var dt sql.NullString
 
 	var ret []*PodUser
 
 	for rows.Next() {
-		if err = rows.Scan(&id, &nickname, &password, &age, &mobilePhone, &createDt, &isBlocked, &updateDt, &statsDt); err != nil {
+		if err = rows.Scan(&id, &nickname, &password, &age, &mobilePhone, &createDt, &isBlocked, &updateDt, &statsDt, &dt); err != nil {
 			return nil, err
 		}
 
@@ -508,6 +520,7 @@ func (mgr *_PodUserMgr) FindByCond(where []db.Rule, order []string, offset, limi
 		d.IsBlocked = isBlocked.Bool
 		d.UpdateDt = updateDt.Int64
 		d.StatsDt = util.SafeParseDateStr(statsDt.String)
+		d.Dt = util.SafeParseDateTimeStr(dt.String)
 		ret = append(ret, &d)
 	}
 	return ret, nil
@@ -516,9 +529,11 @@ func (mgr *_PodUserMgr) FindByCond(where []db.Rule, order []string, offset, limi
 func (mgr *_PodUserMgr) FindAllByCond(where []db.Rule, order []string) ([]*PodUser, error) {
 	var params []interface{}
 
-	query := `select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt from pod.pod_user where `
+	query := `select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user `
 	for i, v := range where {
-		if i > 0 {
+		if i == 0 {
+			query += " where "
+		} else if i > 0 {
 			query += " and "
 		}
 		query += v.S
@@ -555,11 +570,12 @@ func (mgr *_PodUserMgr) FindAllByCond(where []db.Rule, order []string) ([]*PodUs
 	var isBlocked sql.NullBool
 	var updateDt sql.NullInt64
 	var statsDt sql.NullString
+	var dt sql.NullString
 
 	var ret []*PodUser
 
 	for rows.Next() {
-		if err = rows.Scan(&id, &nickname, &password, &age, &mobilePhone, &createDt, &isBlocked, &updateDt, &statsDt); err != nil {
+		if err = rows.Scan(&id, &nickname, &password, &age, &mobilePhone, &createDt, &isBlocked, &updateDt, &statsDt, &dt); err != nil {
 			return nil, err
 		}
 
@@ -573,13 +589,14 @@ func (mgr *_PodUserMgr) FindAllByCond(where []db.Rule, order []string) ([]*PodUs
 		d.IsBlocked = isBlocked.Bool
 		d.UpdateDt = updateDt.Int64
 		d.StatsDt = util.SafeParseDateStr(statsDt.String)
+		d.Dt = util.SafeParseDateTimeStr(dt.String)
 		ret = append(ret, &d)
 	}
 	return ret, nil
 }
 
 func (mgr *_PodUserMgr) Create(d *PodUser) error {
-	r, err := db.DB().Exec(`insert into pod.pod_user (nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt) value (?,?,?,?,?,?,?,?)`, d.Nickname, d.Password, d.Age, d.MobilePhone, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt)
+	r, err := db.DB().Exec(`insert into pod.pod_user (nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt, dt) value (?,?,?,?,?,?,?,?,?)`, d.Nickname, d.Password, d.Age, d.MobilePhone, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Dt)
 	if err != nil {
 		return err
 	}
@@ -645,7 +662,7 @@ func (mgr *_PodUserMgr) RmByRule(rules ...db.Rule) (int64, error) {
 	return n, nil
 }
 func (mgr *_PodUserMgr) UniFindByPK(id int64) (*PodUser, error) {
-	row := db.DB().QueryRow(`select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt from pod.pod_user where id = ?`, id)
+	row := db.DB().QueryRow(`select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where id = ?`, id)
 
 	var id_1 sql.NullInt64
 	var nickname sql.NullString
@@ -656,8 +673,9 @@ func (mgr *_PodUserMgr) UniFindByPK(id int64) (*PodUser, error) {
 	var isBlocked sql.NullBool
 	var updateDt sql.NullInt64
 	var statsDt sql.NullString
+	var dt sql.NullString
 
-	if err := row.Scan(&id_1, &nickname, &password, &age, &mobilePhone, &createDt, &isBlocked, &updateDt, &statsDt); err != nil {
+	if err := row.Scan(&id_1, &nickname, &password, &age, &mobilePhone, &createDt, &isBlocked, &updateDt, &statsDt, &dt); err != nil {
 		return nil, err
 	}
 
@@ -671,11 +689,12 @@ func (mgr *_PodUserMgr) UniFindByPK(id int64) (*PodUser, error) {
 	d.IsBlocked = isBlocked.Bool
 	d.UpdateDt = updateDt.Int64
 	d.StatsDt = util.SafeParseDateStr(statsDt.String)
+	d.Dt = util.SafeParseDateTimeStr(dt.String)
 	return &d, nil
 }
 
 func (mgr *_PodUserMgr) Update(d *PodUser) (int64, error) {
-	r, err := db.DB().Exec(`update pod.pod_user set nickname = ?, password = ?, age = ?, mobile_phone = ?, create_dt = ?, is_blocked = ?, update_dt = ?, stats_dt = ? where id = ?`, d.Nickname, d.Password, d.Age, d.MobilePhone, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Id)
+	r, err := db.DB().Exec(`update pod.pod_user set nickname = ?, password = ?, age = ?, mobile_phone = ?, create_dt = ?, is_blocked = ?, update_dt = ?, stats_dt = ?, dt = ? where id = ?`, d.Nickname, d.Password, d.Age, d.MobilePhone, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Dt, d.Id)
 	if err != nil {
 		return 0, err
 	}

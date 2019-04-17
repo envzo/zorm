@@ -187,6 +187,8 @@ func (g *gen) genUniFind(args []*parse.F) {
 		}
 		if f.T == cls.YamlDate {
 			g.B.W(util.LowerFirstLetter(f.Camel), `.Format("2006-01-02")`).Spc()
+		} else if f.T == cls.YamlDateTime {
+			g.B.W(util.LowerFirstLetter(f.Camel), `.Format("2006-01-02 15:04:05")`).Spc()
 		} else {
 			g.B.W(util.LowerFirstLetter(f.Camel)).Spc()
 		}
