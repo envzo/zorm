@@ -22,17 +22,28 @@ var _ = util.I64
 var _ = time.Nanosecond
 
 type PodUser struct {
-	Id          int64
-	Nickname    string
-	Password    string
-	Age         int32
+	//
+	Id int64
+	// 昵称，非姓名
+	Nickname string
+	//
+	Password string
+	//
+	Age int32
+	// 手机号
 	MobilePhone string
-	CreateDt    int64
-	IsBlocked   bool
-	UpdateDt    int64
-	StatsDt     *time.Time
-	Dt          *time.Time
+	//
+	CreateDt int64
+	//
+	IsBlocked bool
+	// 更新时间
+	UpdateDt int64
+	//
+	StatsDt *time.Time
+	//
+	Dt *time.Time
 
+	// 调用Upsert方法时，baby为true则insert，反之update
 	baby bool
 }
 

@@ -37,9 +37,11 @@ func (g *gen) genORM(pkg string) []byte {
 
 	g.B.WL("type ", g.T, " struct {")
 	for _, f := range g.x.Fs {
+		g.B.Tab().WL("// ",f.Comment)
 		g.B.Tab().W(f.Camel).Spc().W(f.GoT).Ln()
 	}
-	g.B.Ln().WL("baby bool")
+	g.B.Ln().WL("// 调用Upsert方法时，baby为true则insert，反之update")
+	g.B.WL("baby bool")
 	g.B.WL("}")
 
 	g.B.WL("func New", g.T, "() *", g.T, " {")
