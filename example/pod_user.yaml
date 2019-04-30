@@ -28,4 +28,4 @@ pod_user:
     - dt: datetime
   pk: id
   uniques: [[nickname,mobile_phone], [mobile_phone]]
-  indexes: [[create_dt], [update_dt]]
+  indexes: [[create_dt, age], [update_dt]]

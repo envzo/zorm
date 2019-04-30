@@ -14,6 +14,6 @@ create table if not exists `pod_user` (
   primary key (`id`),
   unique key `uni_nickname_mobile_phone` (`nickname`, `mobile_phone`),
   unique key `uni_mobile_phone` (`mobile_phone`),
-  index `idx_create_dt` (`create_dt`),
+  index `idx_create_dt_age` (`create_dt`, `age`),
   index `idx_update_dt` (`update_dt`)
 ) engine=InnoDB default charset=utf8mb4 comment '我是无辜的测试表';

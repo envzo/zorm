@@ -1,6 +1,7 @@
 package gen
 
 import (
+	"fmt"
 	"github.com/envzo/zorm/cls"
 	"github.com/envzo/zorm/parse"
 	"github.com/envzo/zorm/util"
@@ -37,9 +38,11 @@ func (g *gen) genORM(pkg string) []byte {
 
 	g.B.WL("type ", g.T, " struct {")
 	for _, f := range g.x.Fs {
+		g.B.Tab().WL("// ", f.Comment)
 		g.B.Tab().W(f.Camel).Spc().W(f.GoT).Ln()
 	}
-	g.B.Ln().WL("baby bool")
+	g.B.Ln().WL("// 调用Upsert方法时，baby为true则insert，反之update")
+	g.B.WL("baby bool")
 	g.B.WL("}")
 
 	g.B.WL("func New", g.T, "() *", g.T, " {")
@@ -47,6 +50,19 @@ func (g *gen) genORM(pkg string) []byte {
 	g.B.WL("}")
 
 	g.B.WL("type _", g.T, "Mgr struct {}")
+
+	g.B.Ln()
+
+	for _, fs := range g.x.Indexes {
+		g.B.W("type ", g.getIxEntityTypeName(fs))
+		g.B.WL(" struct {")
+		for _, f := range fs {
+			g.B.Tab().WL(f.Camel, " ", f.GoT)
+		}
+		g.B.WL("}")
+
+		g.B.Ln()
+	}
 
 	g.B.WL("var ", g.T, "Mgr = &_", g.T, "Mgr{}")
 
@@ -59,6 +75,7 @@ func (g *gen) genORM(pkg string) []byte {
 
 	for _, fs := range g.x.Indexes {
 		g.genFindByIndex(fs)
+		g.genFindByIndexArray(fs)
 		g.genCountByIndex(fs)
 	}
 
@@ -690,6 +707,133 @@ func (g *gen) genFindByIndex(args []*parse.F) {
 	g.B.WL2("}")
 }
 
+func (g *gen) genFindByIndexArray(args []*parse.F) {
+	g.B.WL("// 通过索引数组查询")
+	g.B.W("func (mgr", " *_", g.T, "Mgr) FindBy")
+	for _, f := range args {
+		g.B.W(f.Camel)
+	}
+	g.B.W("Array(", "entities []*", g.getIxEntityTypeName(args))
+
+	g.B.W(", order []string, offset, limit int64)")
+	g.B.Spc().W("([]*" + g.T + ", string, error)").WL("{")
+
+	g.B.WL("if len(entities) == 0 {")
+	g.B.WL("return nil, \"\", errors.New(\"input entities empty. \")")
+	g.B.WL2("}")
+
+	// 构造问号占位符
+	a := "("
+	for i := range args {
+		a += "?"
+		if i != len(args)-1 {
+			a += ","
+		} else {
+			a += ")"
+		}
+	}
+
+	if len(args) == 1 {
+		a = "?"
+	}
+
+	b := "," + a
+	g.B.WL("str := \"", a, "\" + strings.Repeat(\"", b, "\", len(entities) - 1)")
+
+	// make query sel
+	g.B.W("query := fmt.Sprintf(\"select ")
+	for i, f := range g.x.Fs {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W("`", f.Name, "`")
+	}
+	g.B.W(" from ", g.x.DB, ".", g.x.TB, " where (")
+	for i, f := range args {
+		g.B.W("`", f.Name, "`")
+		if i != len(args)-1 {
+			g.B.W(", ")
+		}
+	}
+	g.B.WL(") in (%s)\", str)")
+
+	g.B.WL("for i, o := range order {")
+	g.B.WL("if i==0 {")
+	g.B.WL(`query += " order by "`)
+	g.B.WL("} else {")
+	g.B.WL(`query += ", "`)
+	g.B.WL("}")
+	g.B.WL(`if strings.HasPrefix(o, "-") {`)
+	g.B.WL("	query += o[1:]")
+	g.B.WL("} else {")
+	g.B.WL("	query += o")
+	g.B.WL("}")
+	g.B.WL("if o[0] == '-' {")
+	g.B.WL(`query += " desc"`)
+	g.B.WL("}")
+	g.B.WL("}")
+	g.B.WL("if offset != -1 && limit != -1 {")
+	g.B.WL(`query += fmt.Sprintf(" limit %d, %d", offset, limit)`)
+	g.B.WL2("}")
+	// end make query sql
+
+	g.B.WL("params := make([]interface{}, 0, ", fmt.Sprintf("%d", len(args)), " * len(entities))")
+	g.B.WL("for _, entity := range entities {")
+	for _, f := range args {
+		g.B.WL("params = append(params, entity.", f.Camel, ")")
+	}
+	g.B.WL("}")
+
+	g.B.WL("rows, err := db.DB().Query(query, params...)")
+	g.B.WL("if err!=nil {")
+	g.B.WL("return nil, query, err")
+	g.B.WL2("}")
+
+	// temp variables
+	vm := map[string]string{}
+
+	for _, f := range g.x.Fs {
+		n := util.LowerFirstLetter(f.Camel)
+
+		if n == "type" {
+			n += "_"
+		}
+
+		g.B.W("var ", n)
+		vm[f.Camel] = n
+
+		g.B.Spc().WL(util.NilSqlType(f.T))
+	}
+
+	g.B.Ln().WL2("var ret []*", g.T)
+
+	g.B.WL("for rows.Next(){")
+
+	g.B.W("if err = rows.Scan(")
+	for i, f := range g.x.Fs {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W("&", vm[f.Camel])
+	}
+	g.B.W("); err!= nil {")
+	g.B.W("return nil, query, err")
+	g.B.WL2("}")
+
+	g.B.WL("d := ", g.T, "{}")
+	for _, f := range g.x.Fs {
+		g.B.W("d.", f.Camel, "=", util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
+	}
+
+	g.B.WL("ret = append(ret, &d)")
+
+	g.B.WL("}") // end rows loop
+
+	g.B.W("return ret, query, nil")
+
+	g.B.WL2("}")
+}
+
 func (g *gen) genFindByJoin() {
 	g.B.W("func (mgr", " *_", g.T, "Mgr) FindByJoin(t string, on, where []db.Rule, order []string, offset, limit int64) ")
 	g.B.W("([]*" + g.T + ", error)").WL("{")
@@ -1175,4 +1319,14 @@ func (g *gen) genCountByRule() {
 	g.B.WL2("}")
 	g.B.WL("return c.Int64, nil")
 	g.B.WL2("}")
+}
+
+func (g *gen) getIxEntityTypeName(fs []*parse.F) string {
+	s := "IxEntity" + g.T
+
+	for _, f := range fs {
+		s += f.Camel
+	}
+
+	return s
 }
