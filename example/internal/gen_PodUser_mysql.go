@@ -53,6 +53,15 @@ func NewPodUser() *PodUser {
 
 type _PodUserMgr struct{}
 
+type IxEntityPodUserCreateDtAge struct {
+	CreateDt int64
+	Age      int32
+}
+
+type IxEntityPodUserUpdateDt struct {
+	UpdateDt int64
+}
+
 var PodUserMgr = &_PodUserMgr{}
 
 func (mgr *_PodUserMgr) IsNicknameMobilePhoneExists(nickname string, mobilePhone string) (bool, error) {
@@ -193,8 +202,8 @@ func (mgr *_PodUserMgr) UniRmByMobilePhone(d *PodUser) (int64, error) {
 	return n, nil
 }
 
-func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, limit int64) ([]*PodUser, error) {
-	query := `select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where create_dt = ?`
+func (mgr *_PodUserMgr) FindByCreateDtAge(createDt int64, age int32, order []string, offset, limit int64) ([]*PodUser, error) {
+	query := `select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where create_dt = ? and age = ?`
 	for i, o := range order {
 		if i == 0 {
 			query += " order by "
@@ -214,7 +223,7 @@ func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, l
 		query += fmt.Sprintf(" limit %d, %d", offset, limit)
 	}
 
-	rows, err := db.DB().Query(query, createDt)
+	rows, err := db.DB().Query(query, createDt, age)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +231,7 @@ func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, l
 	var id sql.NullInt64
 	var nickname sql.NullString
 	var password sql.NullString
-	var age sql.NullInt64
+	var age_1 sql.NullInt64
 	var mobilePhone sql.NullString
 	var createDt_1 sql.NullInt64
 	var isBlocked sql.NullBool
@@ -233,7 +242,7 @@ func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, l
 	var ret []*PodUser
 
 	for rows.Next() {
-		if err = rows.Scan(&id, &nickname, &password, &age, &mobilePhone, &createDt_1, &isBlocked, &updateDt, &statsDt, &dt); err != nil {
+		if err = rows.Scan(&id, &nickname, &password, &age_1, &mobilePhone, &createDt_1, &isBlocked, &updateDt, &statsDt, &dt); err != nil {
 			return nil, err
 		}
 
@@ -241,7 +250,7 @@ func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, l
 		d.Id = id.Int64
 		d.Nickname = nickname.String
 		d.Password = password.String
-		d.Age = int32(age.Int64)
+		d.Age = int32(age_1.Int64)
 		d.MobilePhone = mobilePhone.String
 		d.CreateDt = createDt_1.Int64
 		d.IsBlocked = isBlocked.Bool
@@ -253,9 +262,80 @@ func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, l
 	return ret, nil
 }
 
-func (mgr *_PodUserMgr) CountByCreateDt(createDt int64) (int64, error) {
-	query := `select count(1) from pod.pod_user where create_dt = ?`
-	row := db.DB().QueryRow(query, createDt)
+// 通过索引数组查询
+func (mgr *_PodUserMgr) FindByCreateDtAgeArray(entities []*IxEntityPodUserCreateDtAge, order []string, offset, limit int64) ([]*PodUser, string, error) {
+	if len(entities) == 0 {
+		return nil, "", errors.New("input entities empty. ")
+	}
+
+	str := "(?,?)" + strings.Repeat(",(?,?)", len(entities)-1)
+	query := fmt.Sprintf("select `id`, `nickname`, `password`, `age`, `mobile_phone`, `create_dt`, `is_blocked`, `update_dt`, `stats_dt`, `dt` from pod.pod_user where (`create_dt`, `age`) in (%s)", str)
+	for i, o := range order {
+		if i == 0 {
+			query += " order by "
+		} else {
+			query += ", "
+		}
+		if strings.HasPrefix(o, "-") {
+			query += o[1:]
+		} else {
+			query += o
+		}
+		if o[0] == '-' {
+			query += " desc"
+		}
+	}
+	if offset != -1 && limit != -1 {
+		query += fmt.Sprintf(" limit %d, %d", offset, limit)
+	}
+
+	params := make([]interface{}, 0, 2*len(entities))
+	for _, entity := range entities {
+		params = append(params, entity.CreateDt)
+		params = append(params, entity.Age)
+	}
+	rows, err := db.DB().Query(query, params...)
+	if err != nil {
+		return nil, query, err
+	}
+
+	var id sql.NullInt64
+	var nickname sql.NullString
+	var password sql.NullString
+	var age sql.NullInt64
+	var mobilePhone sql.NullString
+	var createDt sql.NullInt64
+	var isBlocked sql.NullBool
+	var updateDt sql.NullInt64
+	var statsDt sql.NullString
+	var dt sql.NullString
+
+	var ret []*PodUser
+
+	for rows.Next() {
+		if err = rows.Scan(&id, &nickname, &password, &age, &mobilePhone, &createDt, &isBlocked, &updateDt, &statsDt, &dt); err != nil {
+			return nil, query, err
+		}
+
+		d := PodUser{}
+		d.Id = id.Int64
+		d.Nickname = nickname.String
+		d.Password = password.String
+		d.Age = int32(age.Int64)
+		d.MobilePhone = mobilePhone.String
+		d.CreateDt = createDt.Int64
+		d.IsBlocked = isBlocked.Bool
+		d.UpdateDt = updateDt.Int64
+		d.StatsDt = util.SafeParseDateStr(statsDt.String)
+		d.Dt = util.SafeParseDateTimeStr(dt.String)
+		ret = append(ret, &d)
+	}
+	return ret, query, nil
+}
+
+func (mgr *_PodUserMgr) CountByCreateDtAge(createDt int64, age int32) (int64, error) {
+	query := `select count(1) from pod.pod_user where create_dt = ? and age = ?`
+	row := db.DB().QueryRow(query, createDt, age)
 
 	var c sql.NullInt64
 
@@ -324,6 +404,76 @@ func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order []string, offset, l
 		ret = append(ret, &d)
 	}
 	return ret, nil
+}
+
+// 通过索引数组查询
+func (mgr *_PodUserMgr) FindByUpdateDtArray(entities []*IxEntityPodUserUpdateDt, order []string, offset, limit int64) ([]*PodUser, string, error) {
+	if len(entities) == 0 {
+		return nil, "", errors.New("input entities empty. ")
+	}
+
+	str := "?" + strings.Repeat(",?", len(entities)-1)
+	query := fmt.Sprintf("select `id`, `nickname`, `password`, `age`, `mobile_phone`, `create_dt`, `is_blocked`, `update_dt`, `stats_dt`, `dt` from pod.pod_user where (`update_dt`) in (%s)", str)
+	for i, o := range order {
+		if i == 0 {
+			query += " order by "
+		} else {
+			query += ", "
+		}
+		if strings.HasPrefix(o, "-") {
+			query += o[1:]
+		} else {
+			query += o
+		}
+		if o[0] == '-' {
+			query += " desc"
+		}
+	}
+	if offset != -1 && limit != -1 {
+		query += fmt.Sprintf(" limit %d, %d", offset, limit)
+	}
+
+	params := make([]interface{}, 0, 1*len(entities))
+	for _, entity := range entities {
+		params = append(params, entity.UpdateDt)
+	}
+	rows, err := db.DB().Query(query, params...)
+	if err != nil {
+		return nil, query, err
+	}
+
+	var id sql.NullInt64
+	var nickname sql.NullString
+	var password sql.NullString
+	var age sql.NullInt64
+	var mobilePhone sql.NullString
+	var createDt sql.NullInt64
+	var isBlocked sql.NullBool
+	var updateDt sql.NullInt64
+	var statsDt sql.NullString
+	var dt sql.NullString
+
+	var ret []*PodUser
+
+	for rows.Next() {
+		if err = rows.Scan(&id, &nickname, &password, &age, &mobilePhone, &createDt, &isBlocked, &updateDt, &statsDt, &dt); err != nil {
+			return nil, query, err
+		}
+
+		d := PodUser{}
+		d.Id = id.Int64
+		d.Nickname = nickname.String
+		d.Password = password.String
+		d.Age = int32(age.Int64)
+		d.MobilePhone = mobilePhone.String
+		d.CreateDt = createDt.Int64
+		d.IsBlocked = isBlocked.Bool
+		d.UpdateDt = updateDt.Int64
+		d.StatsDt = util.SafeParseDateStr(statsDt.String)
+		d.Dt = util.SafeParseDateTimeStr(dt.String)
+		ret = append(ret, &d)
+	}
+	return ret, query, nil
 }
 
 func (mgr *_PodUserMgr) CountByUpdateDt(updateDt int64) (int64, error) {
