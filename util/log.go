@@ -2,14 +2,14 @@ package util
 
 import (
 	"log"
-	"os"
-	"strings"
 )
 
-var shouldLog = strings.ToLower(os.Getenv("ZORM_DEBUG_LOG")) == "true"
+var logEnabled bool
+
+func EnableLog() { logEnabled = true }
 
 func Log(s ...interface{}) {
-	if !shouldLog {
+	if !logEnabled {
 		return
 	}
 
