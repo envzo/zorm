@@ -1,6 +1,8 @@
 package gen
 
 import (
+	"bytes"
+
 	"github.com/envzo/zorm/cls"
 	"github.com/envzo/zorm/parse"
 	"github.com/envzo/zorm/util"
@@ -83,11 +85,14 @@ func (g *gen) genORM(pkg string) []byte {
 }
 
 func (g *gen) genIsExists(args []*parse.F) {
-	g.B.W("func (mgr", " *_", g.T, "Mgr) Is")
+	var m bytes.Buffer
+	m.WriteString("Is")
 	for _, f := range args {
-		g.B.W(f.Camel)
+		m.WriteString(f.Camel)
 	}
-	g.B.W("Exists(")
+	m.WriteString("Exists")
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(")
 
 	for i, f := range args {
 		if i > 0 {
@@ -103,6 +108,7 @@ func (g *gen) genIsExists(args []*parse.F) {
 	}
 	g.B.W(")")
 	g.B.Spc().W("(bool, error)").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
 	g.B.W("row := db.DB().QueryRow(`select count(1) from ", g.x.DB, ".", g.x.TB, " where ")
 
@@ -126,28 +132,36 @@ func (g *gen) genIsExists(args []*parse.F) {
 	g.B.Ln().W("if err := row.Scan(&c); err!= nil {")
 	g.B.W("return false, err")
 	g.B.WL("}")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
 	g.B.W("return c.Int64 > 0, nil")
 
 	g.B.WL2("}")
 }
 
 func (g *gen) genIsExistsByPK() {
-	g.B.WL("func (mgr", " *_", g.T, "Mgr) IsExistsByPK(pk ", g.x.PK.GoT, ") (bool, error) {")
+	var m bytes.Buffer
+	m.WriteString("IsExistsByPK")
+
+	g.B.WL("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(pk ", g.x.PK.GoT, ") (bool, error) {")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	g.B.WL("row := db.DB().QueryRow(`select count(1) from ", g.x.DB, ".", g.x.TB, " where ", g.x.PK.Name, " = ?`, pk)")
 	g.B.WL("var c sql.NullInt64")
 	g.B.Ln().WL("if err := row.Scan(&c); err!= nil {")
 	g.B.WL("return false, err")
 	g.B.WL("}")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
 	g.B.WL("return c.Int64 > 0, nil")
 	g.B.WL2("}")
 }
 
 func (g *gen) genUniFind(args []*parse.F) {
-	g.B.W("func (mgr", " *_", g.T, "Mgr) UniFindBy")
+	var m bytes.Buffer
+	m.WriteString("UniFindBy")
 	for _, f := range args {
-		g.B.W(f.Camel)
+		m.WriteString(f.Camel)
 	}
-	g.B.W("(")
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(")
 
 	for i, f := range args {
 		if i > 0 {
@@ -163,6 +177,7 @@ func (g *gen) genUniFind(args []*parse.F) {
 	}
 	g.B.W(")")
 	g.B.Spc().W("(*" + g.T + ", error)").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
 	g.B.W("row := db.DB().QueryRow(`select ")
 	for i, f := range g.x.Fs {
@@ -234,19 +249,23 @@ func (g *gen) genUniFind(args []*parse.F) {
 		g.B.W("d.", f.Camel, "=", util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
 	}
 
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
 	g.B.W("return &d, nil")
 
 	g.B.WL2("}")
 }
 
 func (g *gen) genUniUpdate(args []*parse.F) {
-	g.B.W("func (mgr", " *_", g.T, "Mgr) UpdateBy")
+	var m bytes.Buffer
+	m.WriteString("UpdateBy")
 	for _, f := range args {
-		g.B.W(f.Camel)
+		m.WriteString(f.Camel)
 	}
-	g.B.W("(d *", g.T, ")")
-	g.B.Spc().W("(int64, error) ").WL("{")
 
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(d *", g.T, ")")
+	g.B.Spc().W("(int64, error) ").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	g.B.W("r,err := db.DB().Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
 	flag := false
 SetField:
@@ -311,18 +330,23 @@ SetParam:
 	g.B.WL("if err != nil {")
 	g.B.WL("	return 0, err")
 	g.B.WL("}")
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
 	g.B.WL("return n, nil")
 	g.B.WL("}").Ln()
 }
 
 func (g *gen) genUniRm(args []*parse.F) {
-	g.B.W("func (mgr", " *_", g.T, "Mgr) UniRmBy")
+	var m bytes.Buffer
+	m.WriteString("UniRmBy")
 	for _, f := range args {
-		g.B.W(f.Camel)
+		m.WriteString(f.Camel)
 	}
-	g.B.W("(d *", g.T, ")")
-	g.B.Spc().W("(int64, error) ").WL("{")
 
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(d *", g.T, ")")
+	g.B.Spc().W("(int64, error) ").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	g.B.W("r,err := db.DB().Exec(`delete from ", g.x.DB, ".", g.x.TB, " where ")
 
 	for i, f := range args {
@@ -348,12 +372,19 @@ func (g *gen) genUniRm(args []*parse.F) {
 	g.B.WL("if err != nil {")
 	g.B.WL("	return 0, err")
 	g.B.WL("}")
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
 	g.B.WL("return n, nil")
 	g.B.WL("}").Ln()
 }
 
 func (g *gen) genCreate() *Buf {
-	g.B.WL("func (mgr *_", g.T, "Mgr) Create(d *", g.T, ") error {")
+	var m bytes.Buffer
+	m.WriteString("Create")
+
+	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(d *", g.T, ") error {")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	if g.x.PK != nil && g.x.PK.AutoIncr {
 		g.B.W("r, err")
 	} else {
@@ -408,6 +439,9 @@ func (g *gen) genCreate() *Buf {
 			g.B.WL("int32(id)")
 		}
 	}
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
 	g.B.WL("return nil")
 	return g.B.WL("}")
 }
@@ -427,7 +461,10 @@ func (g *gen) genUpsert() *Buf {
 }
 
 func (g *gen) genUniFindByPk() {
-	g.B.W("func (mgr", " *_", g.T, "Mgr) UniFindByPK(", util.LowerFirstLetter(g.x.PK.Camel))
+	var m bytes.Buffer
+	m.WriteString("UniFindByPK")
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(", util.LowerFirstLetter(g.x.PK.Camel))
 
 	if g.x.PK.T == cls.YamlTimestamp { // it is convenient to use integer when querying
 		g.B.Spc().W(util.I64)
@@ -436,6 +473,7 @@ func (g *gen) genUniFindByPk() {
 	}
 	g.B.W(")")
 	g.B.Spc().W("(*" + g.T + ", error)").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
 	g.B.W("row := db.DB().QueryRow(`select ")
 	for i, f := range g.x.Fs {
@@ -482,13 +520,19 @@ func (g *gen) genUniFindByPk() {
 		g.B.W("d.", f.Camel, "=", util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
 	}
 
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
 	g.B.W("return &d, nil")
 
 	g.B.WL2("}")
 }
 
 func (g *gen) genUpdateByPK() *Buf {
-	g.B.WL("func (mgr *_", g.T, "Mgr) Update(d *", g.T, ") (int64, error) {")
+	var m bytes.Buffer
+	m.WriteString("Update")
+
+	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(d *", g.T, ") (int64, error) {")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	g.B.W("r,err:=db.DB().Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
 	for i, f := range g.x.Fs {
 		if f.Name == g.x.PK.Name {
@@ -520,12 +564,17 @@ func (g *gen) genUpdateByPK() *Buf {
 	g.B.WL("if err != nil {")
 	g.B.WL("return 0, err")
 	g.B.WL("}")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
 	g.B.WL("return n, nil")
 	return g.B.WL("}")
 }
 
 func (g *gen) genRmByPK() {
-	g.B.WL("func (mgr *_", g.T, "Mgr) RmByPK(pk ", g.x.PK.GoT, ") (int64, error) {")
+	var m bytes.Buffer
+	m.WriteString("RmByPK")
+
+	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(pk ", g.x.PK.GoT, ") (int64, error) {")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	g.B.WL(`query := "delete from `, g.x.DB, ".", g.x.TB, " where ", g.x.PK.Name, ` = ?"`)
 
 	g.B.WL("r,err := db.DB().Exec(query, pk)")
@@ -536,12 +585,19 @@ func (g *gen) genRmByPK() {
 	g.B.WL("if err != nil {")
 	g.B.WL("return 0, err")
 	g.B.WL("}")
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
 	g.B.WL("return n, nil")
 	g.B.WL("}")
 }
 
 func (g *gen) genRmByRule() {
-	g.B.WL("func (mgr *_", g.T, "Mgr) RmByRule(rules ...db.Rule) (int64, error) {")
+	var m bytes.Buffer
+	m.WriteString("RmByRule")
+
+	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(rules ...db.Rule) (int64, error) {")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	g.B.WL(`query := "delete from `, g.x.DB, ".", g.x.TB, ` where "`)
 
 	g.B.WL("var p []interface{}")
@@ -563,16 +619,21 @@ func (g *gen) genRmByRule() {
 	g.B.WL("if err!=nil {")
 	g.B.WL("return 0, err")
 	g.B.WL("}")
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
 	g.B.WL("return n, nil")
 	g.B.WL("}")
 }
 
 func (g *gen) genFindByIndex(args []*parse.F) {
-	g.B.W("func (mgr", " *_", g.T, "Mgr) FindBy")
+	var m bytes.Buffer
+	m.WriteString("FindBy")
 	for _, f := range args {
-		g.B.W(f.Camel)
+		m.WriteString(f.Camel)
 	}
-	g.B.W("(")
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(")
 
 	for i, arg := range args {
 		if i > 0 {
@@ -588,6 +649,7 @@ func (g *gen) genFindByIndex(args []*parse.F) {
 	}
 	g.B.W(", order []string, offset, limit int64)")
 	g.B.Spc().W("([]*" + g.T + ", error)").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
 	// make query sel
 	g.B.W("query := `select ")
@@ -685,6 +747,8 @@ func (g *gen) genFindByIndex(args []*parse.F) {
 
 	g.B.WL("}") // end rows loop
 
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
 	g.B.W("return ret, nil")
 
 	g.B.WL2("}")
@@ -700,8 +764,12 @@ func (g *gen) genFindByJoin() {
 }
 
 func (g *gen) genFindByMultiJoin() {
-	g.B.W("func (mgr", " *_", g.T, "Mgr) FindByMultiJoin(joins []db.Join, where []db.Rule, order []string, offset, limit int64)")
+	var m bytes.Buffer
+	m.WriteString("FindByMultiJoin")
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(joins []db.Join, where []db.Rule, order []string, offset, limit int64)")
 	g.B.Spc().W("([]*" + g.T + ", error)").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
 	g.B.WL2("var params []interface{}")
 
@@ -819,14 +887,20 @@ func (g *gen) genFindByMultiJoin() {
 
 	g.B.WL("}") // end rows loop
 
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
 	g.B.W("return ret, nil")
 
 	g.B.WL2("}")
 }
 
 func (g *gen) genCountByMultiJoin() {
-	g.B.W("func (mgr", " *_", g.T, "Mgr) CountByMultiJoin(joins []db.Join, where []db.Rule) ")
+	var m bytes.Buffer
+	m.WriteString("CountByMultiJoin")
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(joins []db.Join, where []db.Rule) ")
 	g.B.W("(int64, error)").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
 	g.B.WL2("var params []interface{}")
 
@@ -875,14 +949,20 @@ func (g *gen) genCountByMultiJoin() {
 	g.B.WL("return 0, err")
 	g.B.WL("}")
 
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
 	g.B.W("return c.Int64, nil")
 
 	g.B.WL2("}")
 }
 
 func (g *gen) genFindByCond() {
-	g.B.W("func (mgr", " *_", g.T, "Mgr) FindByCond(where []db.Rule, order []string, offset, limit int64)")
+	var m bytes.Buffer
+	m.WriteString("FindByCond")
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(where []db.Rule, order []string, offset, limit int64)")
 	g.B.Spc().W("([]*" + g.T + ", error)").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
 	g.B.WL2("var params []interface{}")
 
@@ -989,8 +1069,12 @@ func (g *gen) genFindByCond() {
 }
 
 func (g *gen) genFindAllByCond() {
-	g.B.W("func (mgr", " *_", g.T, "Mgr) FindAllByCond(where []db.Rule, order []string)")
+	var m bytes.Buffer
+	m.WriteString("FindAllByCond")
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(where []db.Rule, order []string)")
 	g.B.Spc().W("([]*" + g.T + ", error)").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
 	g.B.WL2("var params []interface{}")
 
@@ -1090,17 +1174,21 @@ func (g *gen) genFindAllByCond() {
 
 	g.B.WL("}") // end rows loop
 
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
 	g.B.W("return ret, nil")
 
 	g.B.WL2("}")
 }
 
 func (g *gen) genCountByIndex(args []*parse.F) {
-	g.B.W("func (mgr", " *_", g.T, "Mgr) CountBy")
+	var m bytes.Buffer
+	m.WriteString("CountBy")
 	for _, f := range args {
-		g.B.W(f.Camel)
+		m.WriteString(f.Camel)
 	}
-	g.B.W("(")
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(")
 
 	for i, arg := range args {
 		if i > 0 {
@@ -1116,6 +1204,8 @@ func (g *gen) genCountByIndex(args []*parse.F) {
 	}
 	g.B.W(")")
 	g.B.Spc().W("(int64, error)").WL("{")
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
 	// make query sel
 	g.B.W("query := `select count(1) from ", g.x.DB, ".", g.x.TB, " where ")
@@ -1143,13 +1233,19 @@ func (g *gen) genCountByIndex(args []*parse.F) {
 	g.B.W("return 0, err")
 	g.B.WL2("}")
 
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
 	g.B.W("return c.Int64, nil")
 
 	g.B.WL2("}")
 }
 
 func (g *gen) genCountByRule() {
-	g.B.WL("func (mgr", " *_", g.T, "Mgr) CountByRule(rules ...db.Rule) (int64, error) {")
+	var m bytes.Buffer
+	m.WriteString("CountByRule")
+
+	g.B.WL("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(rules ...db.Rule) (int64, error) {")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
 	// make query sel
 	g.B.WL(`var p []interface{}`)
@@ -1173,6 +1269,9 @@ func (g *gen) genCountByRule() {
 	g.B.WL("if err := row.Scan(&c); err != nil {")
 	g.B.WL("return 0, err")
 	g.B.WL2("}")
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
 	g.B.WL("return c.Int64, nil")
 	g.B.WL2("}")
 }
