@@ -224,6 +224,7 @@ func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, l
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var id sql.NullInt64
 	var nickname sql.NullString
@@ -301,6 +302,7 @@ func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order []string, offset, l
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var id sql.NullInt64
 	var nickname sql.NullString
@@ -403,6 +405,7 @@ func (mgr *_PodUserMgr) FindByMultiJoin(joins []db.Join, where []db.Rule, order 
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var id sql.NullInt64
 	var nickname sql.NullString
@@ -520,6 +523,7 @@ func (mgr *_PodUserMgr) FindByCond(where []db.Rule, order []string, offset, limi
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var id sql.NullInt64
 	var nickname sql.NullString
@@ -590,6 +594,7 @@ func (mgr *_PodUserMgr) FindAllByCond(where []db.Rule, order []string) ([]*PodUs
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var id sql.NullInt64
 	var nickname sql.NullString

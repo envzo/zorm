@@ -695,9 +695,10 @@ func (g *gen) genFindByIndex(args []*parse.F) {
 		g.B.W(util.LowerFirstLetter(f.Camel)).Spc()
 	}
 	g.B.WL(")")
-	g.B.WL("if err!=nil {")
-	g.B.WL("return nil,err")
-	g.B.WL2("}")
+	g.B.WL("if err != nil {")
+	g.B.WL("return nil, err")
+	g.B.WL("}")
+	g.B.WL2("defer rows.Close()")
 
 	// temp variables
 	vm := map[string]string{}
@@ -830,8 +831,9 @@ func (g *gen) genFindByMultiJoin() {
 
 	g.B.WL("rows, err := db.DB().Query(query, params...)")
 	g.B.WL("if err != nil {")
-	g.B.WL("return nil,err")
-	g.B.WL2("}")
+	g.B.WL("return nil, err")
+	g.B.WL("}")
+	g.B.WL2("defer rows.Close()")
 
 	// temp variables
 	vm := map[string]string{}
@@ -1007,8 +1009,9 @@ func (g *gen) genFindByCond() {
 
 	g.B.WL("rows, err := db.DB().Query(query, params...)")
 	g.B.WL("if err != nil {")
-	g.B.WL("return nil,err")
-	g.B.WL2("}")
+	g.B.WL("return nil, err")
+	g.B.WL("}")
+	g.B.WL2("defer rows.Close()")
 
 	// temp variables
 	vm := map[string]string{}
@@ -1118,8 +1121,9 @@ func (g *gen) genFindAllByCond() {
 
 	g.B.WL("rows, err := db.DB().Query(query, params...)")
 	g.B.WL("if err != nil {")
-	g.B.WL("return nil,err")
-	g.B.WL2("}")
+	g.B.WL("return nil, err")
+	g.B.WL("}")
+	g.B.WL2("defer rows.Close()")
 
 	// temp variables
 	vm := map[string]string{}
