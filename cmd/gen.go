@@ -4,9 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
-
 	"github.com/envzo/zorm/gen"
+	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
