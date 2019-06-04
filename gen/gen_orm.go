@@ -56,7 +56,9 @@ func (g *gen) genORM(pkg string) []byte {
 		g.genIsExists(fs)
 		g.genUniFind(fs)
 		g.genUniUpdate(fs)
+		g.genTxUniUpdate(fs)
 		g.genUniRm(fs)
+		g.genTxUniRm(fs)
 	}
 
 	for _, fs := range g.x.Indexes {
@@ -70,14 +72,18 @@ func (g *gen) genORM(pkg string) []byte {
 	g.genFindByCond()
 	g.genFindAllByCond()
 	g.genCreate().Ln()
+	g.genTxCreate().Ln()
 	g.genUpsert().Ln()
 	g.genCountByRule()
 	g.genRmByRule()
+	g.genTxRmByRule()
 
 	if g.x.PK != nil {
 		g.genUniFindByPk()
 		g.genUpdateByPK().Ln()
+		g.genTxUpdateByPK().Ln()
 		g.genRmByPK()
+		g.genTxRmByPK()
 		g.genIsExistsByPK()
 	}
 
@@ -256,9 +262,14 @@ func (g *gen) genUniFind(args []*parse.F) {
 	g.B.WL2("}")
 }
 
-func (g *gen) genUniUpdate(args []*parse.F) {
+func (g *gen) _genUniUpdate(args []*parse.F, isTx bool) {
 	var m bytes.Buffer
+
+	if isTx {
+		m.WriteString("Tx")
+	}
 	m.WriteString("UpdateBy")
+
 	for _, f := range args {
 		m.WriteString(f.Camel)
 	}
@@ -266,7 +277,13 @@ func (g *gen) genUniUpdate(args []*parse.F) {
 	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(d *", g.T, ")")
 	g.B.Spc().W("(int64, error) ").WL("{")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
-	g.B.W("r,err := db.DB().Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
+
+	if isTx {
+		g.B.W("r,err := db.Tx().Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
+	} else {
+		g.B.W("r,err := db.DB().Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
+	}
+
 	flag := false
 SetField:
 	for _, f := range g.x.Fields {
@@ -333,9 +350,21 @@ SetParam:
 	g.B.WL("}").Ln()
 }
 
-func (g *gen) genUniRm(args []*parse.F) {
+func (g *gen) genUniUpdate(args []*parse.F) {
+	g._genUniUpdate(args, false)
+}
+
+func (g *gen) genTxUniUpdate(args []*parse.F) {
+	g._genUniUpdate(args, true)
+}
+
+func (g *gen) _genUniRm(args []*parse.F, isTx bool) {
 	var m bytes.Buffer
+	if isTx {
+		m.WriteString("Tx")
+	}
 	m.WriteString("UniRmBy")
+
 	for _, f := range args {
 		m.WriteString(f.Camel)
 	}
@@ -343,7 +372,11 @@ func (g *gen) genUniRm(args []*parse.F) {
 	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(d *", g.T, ")")
 	g.B.Spc().W("(int64, error) ").WL("{")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
-	g.B.W("r,err := db.DB().Exec(`delete from ", g.x.DB, ".", g.x.TB, " where ")
+	if isTx {
+		g.B.W("r,err := db.Tx().Exec(`delete from ", g.x.DB, ".", g.x.TB, " where ")
+	} else {
+		g.B.W("r,err := db.DB().Exec(`delete from ", g.x.DB, ".", g.x.TB, " where ")
+	}
 
 	for i, f := range args {
 		if i > 0 {
@@ -375,8 +408,19 @@ func (g *gen) genUniRm(args []*parse.F) {
 	g.B.WL("}").Ln()
 }
 
-func (g *gen) genCreate() *Buf {
+func (g *gen) genUniRm(args []*parse.F) {
+	g._genUniRm(args, false)
+}
+
+func (g *gen) genTxUniRm(args []*parse.F) {
+	g._genUniRm(args, true)
+}
+
+func (g *gen) _genCreate(isTx bool) *Buf {
 	var m bytes.Buffer
+	if isTx {
+		m.WriteString("Tx")
+	}
 	m.WriteString("Create")
 
 	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(d *", g.T, ") error {")
@@ -386,7 +430,13 @@ func (g *gen) genCreate() *Buf {
 	} else {
 		g.B.W("_, err")
 	}
-	g.B.W(" := db.DB().Exec(`insert into ", g.x.DB, ".", g.x.TB, " (")
+
+	if isTx {
+		g.B.W(" := db.Tx().Exec(`insert into ", g.x.DB, ".", g.x.TB, " (")
+	} else {
+		g.B.W(" := db.DB().Exec(`insert into ", g.x.DB, ".", g.x.TB, " (")
+	}
+
 	cnt := 0
 	for i, f := range g.x.Fields {
 		if g.x.PK != nil && g.x.PK.AutoIncr && f.Name == g.x.PK.Name {
@@ -440,6 +490,14 @@ func (g *gen) genCreate() *Buf {
 
 	g.B.WL("return nil")
 	return g.B.WL("}")
+}
+
+func (g *gen) genCreate() *Buf {
+	return g._genCreate(false)
+}
+
+func (g *gen) genTxCreate() *Buf {
+	return g._genCreate(true)
 }
 
 func (g *gen) genUpsert() *Buf {
@@ -523,14 +581,23 @@ func (g *gen) genUniFindByPk() {
 	g.B.WL2("}")
 }
 
-func (g *gen) genUpdateByPK() *Buf {
+func (g *gen) _genUpdateByPK(isTx bool) *Buf {
 	var m bytes.Buffer
+	if isTx {
+		m.WriteString("Tx")
+	}
 	m.WriteString("Update")
 
 	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(d *", g.T, ") (int64, error) {")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
-	g.B.W("r,err:=db.DB().Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
-	for i, f := range g.x.Fields {
+
+	if isTx {
+		g.B.W("r,err := db.Tx().Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
+	} else {
+		g.B.W("r,err := db.DB().Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
+	}
+
+	for i, f := range g.x.Fs {
 		if f.Name == g.x.PK.Name {
 			continue
 		}
@@ -565,15 +632,32 @@ func (g *gen) genUpdateByPK() *Buf {
 	return g.B.WL("}")
 }
 
-func (g *gen) genRmByPK() {
+func (g *gen) genUpdateByPK() *Buf {
+	return g._genUpdateByPK(false)
+}
+
+func (g *gen) genTxUpdateByPK() *Buf {
+	return g._genUpdateByPK(true)
+}
+
+func (g *gen) _genRmByPK(isTx bool) {
 	var m bytes.Buffer
+
+	if isTx {
+		m.WriteString("Tx")
+	}
 	m.WriteString("RmByPK")
 
 	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(pk ", g.x.PK.GoT, ") (int64, error) {")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	g.B.WL(`query := "delete from `, g.x.DB, ".", g.x.TB, " where ", g.x.PK.Name, ` = ?"`)
 
-	g.B.WL("r,err := db.DB().Exec(query, pk)")
+	if isTx {
+		g.B.WL("r,err := db.Tx().Exec(query, pk)")
+	} else {
+		g.B.WL("r,err := db.DB().Exec(query, pk)")
+	}
+
 	g.B.WL("if err != nil {")
 	g.B.WL("return 0, err")
 	g.B.WL("}")
@@ -588,8 +672,19 @@ func (g *gen) genRmByPK() {
 	g.B.WL("}")
 }
 
-func (g *gen) genRmByRule() {
+func (g *gen) genRmByPK() {
+	g._genRmByPK(false)
+}
+
+func (g *gen) genTxRmByPK() {
+	g._genRmByPK(true)
+}
+
+func (g *gen) _genRmByRule(isTx bool) {
 	var m bytes.Buffer
+	if isTx {
+		m.WriteString("Tx")
+	}
 	m.WriteString("RmByRule")
 
 	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(rules ...db.Rule) (int64, error) {")
@@ -607,7 +702,12 @@ func (g *gen) genRmByRule() {
 	g.B.WL(`	p = append(p, r.P)`)
 	g.B.WL(`}`)
 
-	g.B.WL("r,err := db.DB().Exec(query, p...)")
+	if isTx {
+		g.B.WL("r,err := db.Tx().Exec(query, p...)")
+	} else {
+		g.B.WL("r,err := db.DB().Exec(query, p...)")
+	}
+
 	g.B.WL("if err != nil {")
 	g.B.WL("return 0, err")
 	g.B.WL("}")
@@ -620,6 +720,14 @@ func (g *gen) genRmByRule() {
 
 	g.B.WL("return n, nil")
 	g.B.WL("}")
+}
+
+func (g *gen) genRmByRule() {
+	g._genRmByRule(false)
+}
+
+func (g *gen) genTxRmByRule() {
+	g._genRmByRule(true)
 }
 
 func (g *gen) genFindByIndex(args []*parse.F) {

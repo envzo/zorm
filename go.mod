@@ -1,7 +1,7 @@
 module github.com/envzo/zorm
 
 require (
-	github.com/go-sql-driver/mysql v1.4.1
+	github.com/go-sql-driver/mysql v1.4.1-0.20190423112050-d0a548181995
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/spf13/cobra v0.0.3
