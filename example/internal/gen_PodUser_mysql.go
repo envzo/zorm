@@ -107,9 +107,37 @@ func (mgr *_PodUserMgr) UpdateByNicknameMobilePhone(d *PodUser) (int64, error) {
 	return n, nil
 }
 
+func (mgr *_PodUserMgr) TxUpdateByNicknameMobilePhone(d *PodUser) (int64, error) {
+	util.Log(`pod.pod_user`, `UpdateByNicknameMobilePhone`)
+	r, err := Zotx.Exec(`update pod.pod_user set password = ?, age = ?, create_dt = ?, is_blocked = ?, update_dt = ?, stats_dt = ?, dt = ? where nickname = ? and mobile_phone = ?`, d.Password, d.Age, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Dt, d.Nickname, d.MobilePhone)
+	if err != nil {
+		return 0, err
+	}
+	n, err := r.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	util.Log(`pod.pod_user`, `UpdateByNicknameMobilePhone ... done`)
+	return n, nil
+}
+
 func (mgr *_PodUserMgr) UniRmByNicknameMobilePhone(d *PodUser) (int64, error) {
 	util.Log(`pod.pod_user`, `UniRmByNicknameMobilePhone`)
 	r, err := db.DB().Exec(`delete from pod.pod_user where nickname = ? and mobile_phone = ?`, d.Nickname, d.MobilePhone)
+	if err != nil {
+		return 0, err
+	}
+	n, err := r.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	util.Log(`pod.pod_user`, `UniRmByNicknameMobilePhone ... done`)
+	return n, nil
+}
+
+func (mgr *_PodUserMgr) TxUniRmByNicknameMobilePhone(d *PodUser) (int64, error) {
+	util.Log(`pod.pod_user`, `UniRmByNicknameMobilePhone`)
+	r, err := Zotx.Exec(`delete from pod.pod_user where nickname = ? and mobile_phone = ?`, d.Nickname, d.MobilePhone)
 	if err != nil {
 		return 0, err
 	}
@@ -184,9 +212,37 @@ func (mgr *_PodUserMgr) UpdateByMobilePhone(d *PodUser) (int64, error) {
 	return n, nil
 }
 
+func (mgr *_PodUserMgr) TxUpdateByMobilePhone(d *PodUser) (int64, error) {
+	util.Log(`pod.pod_user`, `UpdateByMobilePhone`)
+	r, err := Zotx.Exec(`update pod.pod_user set password = ?, age = ?, create_dt = ?, is_blocked = ?, update_dt = ?, stats_dt = ?, dt = ? where mobile_phone = ?`, d.Password, d.Age, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Dt, d.MobilePhone)
+	if err != nil {
+		return 0, err
+	}
+	n, err := r.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	util.Log(`pod.pod_user`, `UpdateByMobilePhone ... done`)
+	return n, nil
+}
+
 func (mgr *_PodUserMgr) UniRmByMobilePhone(d *PodUser) (int64, error) {
 	util.Log(`pod.pod_user`, `UniRmByMobilePhone`)
 	r, err := db.DB().Exec(`delete from pod.pod_user where mobile_phone = ?`, d.MobilePhone)
+	if err != nil {
+		return 0, err
+	}
+	n, err := r.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	util.Log(`pod.pod_user`, `UniRmByMobilePhone ... done`)
+	return n, nil
+}
+
+func (mgr *_PodUserMgr) TxUniRmByMobilePhone(d *PodUser) (int64, error) {
+	util.Log(`pod.pod_user`, `UniRmByMobilePhone`)
+	r, err := Zotx.Exec(`delete from pod.pod_user where mobile_phone = ?`, d.MobilePhone)
 	if err != nil {
 		return 0, err
 	}
@@ -646,6 +702,21 @@ func (mgr *_PodUserMgr) Create(d *PodUser) error {
 	return nil
 }
 
+func (mgr *_PodUserMgr) TxCreate(d *PodUser) error {
+	util.Log(`pod.pod_user`, `TxCreate`)
+	r, err := Zotx.Exec(`insert into pod.pod_user (nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt, dt) value (?,?,?,?,?,?,?,?,?)`, d.Nickname, d.Password, d.Age, d.MobilePhone, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Dt)
+	if err != nil {
+		return err
+	}
+	id, err := r.LastInsertId()
+	if err != nil {
+		return err
+	}
+	d.Id = id
+	util.Log(`pod.pod_user`, `TxCreate ... done`)
+	return nil
+}
+
 func (mgr *_PodUserMgr) Upsert(d *PodUser) error {
 	if d.baby {
 		return mgr.Create(d)
@@ -693,6 +764,28 @@ func (mgr *_PodUserMgr) RmByRule(rules ...db.Rule) (int64, error) {
 		p = append(p, r.P)
 	}
 	r, err := db.DB().Exec(query, p...)
+	if err != nil {
+		return 0, err
+	}
+	n, err := r.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	util.Log(`pod.pod_user`, `RmByRule ... done`)
+	return n, nil
+}
+func (mgr *_PodUserMgr) TxRmByRule(rules ...db.Rule) (int64, error) {
+	util.Log(`pod.pod_user`, `RmByRule`)
+	query := "delete from pod.pod_user where "
+	var p []interface{}
+	for i, r := range rules {
+		if i > 0 {
+			query += " and "
+		}
+		query += r.S
+		p = append(p, r.P)
+	}
+	r, err := Zotx.Exec(query, p...)
 	if err != nil {
 		return 0, err
 	}
@@ -751,10 +844,38 @@ func (mgr *_PodUserMgr) Update(d *PodUser) (int64, error) {
 	return n, nil
 }
 
+func (mgr *_PodUserMgr) TxUpdate(d *PodUser) (int64, error) {
+	util.Log(`pod.pod_user`, `Update`)
+	r, err := Zotx.Exec(`update pod.pod_user set nickname = ?, password = ?, age = ?, mobile_phone = ?, create_dt = ?, is_blocked = ?, update_dt = ?, stats_dt = ?, dt = ? where id = ?`, d.Nickname, d.Password, d.Age, d.MobilePhone, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Dt, d.Id)
+	if err != nil {
+		return 0, err
+	}
+	n, err := r.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	util.Log(`pod.pod_user`, `Update ... done`)
+	return n, nil
+}
+
 func (mgr *_PodUserMgr) RmByPK(pk int64) (int64, error) {
 	util.Log(`pod.pod_user`, `RmByPK`)
 	query := "delete from pod.pod_user where id = ?"
 	r, err := db.DB().Exec(query, pk)
+	if err != nil {
+		return 0, err
+	}
+	n, err := r.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	util.Log(`pod.pod_user`, `RmByPK ... done`)
+	return n, nil
+}
+func (mgr *_PodUserMgr) TxRmByPK(pk int64) (int64, error) {
+	util.Log(`pod.pod_user`, `RmByPK`)
+	query := "delete from pod.pod_user where id = ?"
+	r, err := Zotx.Exec(query, pk)
 	if err != nil {
 		return 0, err
 	}

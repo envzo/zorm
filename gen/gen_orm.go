@@ -56,7 +56,9 @@ func (g *gen) genORM(pkg string) []byte {
 		g.genIsExists(fs)
 		g.genUniFind(fs)
 		g.genUniUpdate(fs)
+		g.genTxUniUpdate(fs)
 		g.genUniRm(fs)
+		g.genTxUniRm(fs)
 	}
 
 	for _, fs := range g.x.Indexes {
@@ -70,14 +72,18 @@ func (g *gen) genORM(pkg string) []byte {
 	g.genFindByCond()
 	g.genFindAllByCond()
 	g.genCreate().Ln()
+	g.genTxCreate().Ln()
 	g.genUpsert().Ln()
 	g.genCountByRule()
 	g.genRmByRule()
+	g.genTxRmByRule()
 
 	if g.x.PK != nil {
 		g.genUniFindByPk()
 		g.genUpdateByPK().Ln()
+		g.genTxUpdateByPK().Ln()
 		g.genRmByPK()
+		g.genTxRmByPK()
 		g.genIsExistsByPK()
 	}
 
@@ -337,6 +343,87 @@ SetParam:
 	g.B.WL("}").Ln()
 }
 
+func (g *gen) genTxUniUpdate(args []*parse.F) {
+	var m bytes.Buffer
+	m.WriteString("UpdateBy")
+	for _, f := range args {
+		m.WriteString(f.Camel)
+	}
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) Tx", m.String(), "(d *", g.T, ")")
+	g.B.Spc().W("(int64, error) ").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
+	g.B.W("r,err := Zotx.Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
+	flag := false
+SetField:
+	for _, f := range g.x.Fs {
+		if g.x.PK != nil && f.Name == g.x.PK.Name && g.x.PK.AutoIncr {
+			continue
+		}
+
+		for _, fields := range g.x.Uniques {
+			for _, field := range fields {
+				if f.Name == field.Name {
+					continue SetField
+				}
+			}
+		}
+
+		if flag {
+			g.B.W(", ")
+		}
+		g.B.W(f.Name, " = ?")
+		flag = true
+	}
+	g.B.W(" where ")
+
+	for i, f := range args {
+		if i > 0 {
+			g.B.W(" and ")
+		}
+		g.B.W(f.Name, " = ?")
+	}
+	g.B.W("`, ")
+
+	// params
+SetParam:
+	for _, f := range g.x.Fs {
+		if g.x.PK != nil && f.Name == g.x.PK.Name && g.x.PK.AutoIncr {
+			continue
+		}
+
+		for _, fields := range g.x.Uniques {
+			for _, field := range fields {
+				if f.Name == field.Name {
+					continue SetParam
+				}
+			}
+		}
+
+		g.B.W("d.", f.Camel, ", ")
+	}
+
+	for i, f := range args {
+		g.B.W("d.", f.Camel)
+		if i != len(args)-1 {
+			g.B.W(", ")
+		}
+	}
+	g.B.WL(")")
+	g.B.WL("if err != nil {")
+	g.B.WL("	return 0, err")
+	g.B.WL("}")
+	g.B.WL("n,err := r.RowsAffected()")
+	g.B.WL("if err != nil {")
+	g.B.WL("	return 0, err")
+	g.B.WL("}")
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
+	g.B.WL("return n, nil")
+	g.B.WL("}").Ln()
+}
+
 func (g *gen) genUniRm(args []*parse.F) {
 	var m bytes.Buffer
 	m.WriteString("UniRmBy")
@@ -348,6 +435,48 @@ func (g *gen) genUniRm(args []*parse.F) {
 	g.B.Spc().W("(int64, error) ").WL("{")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	g.B.W("r,err := db.DB().Exec(`delete from ", g.x.DB, ".", g.x.TB, " where ")
+
+	for i, f := range args {
+		if i > 0 {
+			g.B.W(" and ")
+		}
+		g.B.W(f.Name, " = ?")
+	}
+	g.B.W("`, ")
+
+	// params
+	for i, f := range args {
+		g.B.W("d.", f.Camel)
+		if i != len(args)-1 {
+			g.B.W(", ")
+		}
+	}
+	g.B.WL(")")
+	g.B.WL("if err != nil {")
+	g.B.WL("	return 0, err")
+	g.B.WL("}")
+	g.B.WL("n,err := r.RowsAffected()")
+	g.B.WL("if err != nil {")
+	g.B.WL("	return 0, err")
+	g.B.WL("}")
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
+	g.B.WL("return n, nil")
+	g.B.WL("}").Ln()
+}
+
+func (g *gen) genTxUniRm(args []*parse.F) {
+	var m bytes.Buffer
+	m.WriteString("UniRmBy")
+	for _, f := range args {
+		m.WriteString(f.Camel)
+	}
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) Tx", m.String(), "(d *", g.T, ")")
+	g.B.Spc().W("(int64, error) ").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
+	g.B.W("r,err := Zotx.Exec(`delete from ", g.x.DB, ".", g.x.TB, " where ")
 
 	for i, f := range args {
 		if i > 0 {
@@ -391,6 +520,73 @@ func (g *gen) genCreate() *Buf {
 		g.B.W("_, err")
 	}
 	g.B.W(" := db.DB().Exec(`insert into ", g.x.DB, ".", g.x.TB, " (")
+	cnt := 0
+	for i, f := range g.x.Fs {
+		if g.x.PK != nil && g.x.PK.AutoIncr && f.Name == g.x.PK.Name {
+			continue
+		}
+		g.B.W(f.Name)
+		if i != len(g.x.Fs)-1 {
+			g.B.W(", ")
+		}
+		cnt++
+	}
+	g.B.W(") value (")
+	for i := 0; i < cnt; i++ {
+		if i > 0 {
+			g.B.W(",")
+		}
+		g.B.W("?")
+	}
+	g.B.W(")`,")
+
+	for i, f := range g.x.Fs {
+		if g.x.PK != nil && g.x.PK.AutoIncr && f.Name == g.x.PK.Name {
+			continue
+		}
+		g.B.W("d.", f.Camel)
+		if i != len(g.x.Fs)-1 {
+			g.B.W(",")
+		}
+	}
+
+	g.B.WL(")")
+	g.B.WL("if err != nil {")
+	g.B.WL("	return err")
+	g.B.WL("}")
+
+	if g.x.PK != nil && g.x.PK.AutoIncr {
+		g.B.WL("id,err := r.LastInsertId()")
+		g.B.WL("if err != nil {")
+		g.B.WL("return err")
+		g.B.WL("}")
+		g.B.W("d.", g.x.PK.Camel, "=")
+
+		if g.x.PK.T == cls.YamlI64 {
+			g.B.WL("id")
+		} else if g.x.PK.T == cls.YamlI32 {
+			g.B.WL("int32(id)")
+		}
+	}
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
+	g.B.WL("return nil")
+	return g.B.WL("}")
+}
+
+func (g *gen) genTxCreate() *Buf {
+	var m bytes.Buffer
+	m.WriteString("TxCreate")
+
+	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(d *", g.T, ") error {")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
+	if g.x.PK != nil && g.x.PK.AutoIncr {
+		g.B.W("r, err")
+	} else {
+		g.B.W("_, err")
+	}
+	g.B.W(" := Zotx.Exec(`insert into ", g.x.DB, ".", g.x.TB, " (")
 	cnt := 0
 	for i, f := range g.x.Fs {
 		if g.x.PK != nil && g.x.PK.AutoIncr && f.Name == g.x.PK.Name {
@@ -569,6 +765,71 @@ func (g *gen) genUpdateByPK() *Buf {
 	return g.B.WL("}")
 }
 
+func (g *gen) genTxUpdateByPK() *Buf {
+	var m bytes.Buffer
+	m.WriteString("Update")
+
+	g.B.WL("func (mgr *_", g.T, "Mgr) Tx", m.String(), "(d *", g.T, ") (int64, error) {")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
+	g.B.W("r,err:=Zotx.Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
+	for i, f := range g.x.Fs {
+		if f.Name == g.x.PK.Name {
+			continue
+		}
+		g.B.W(f.Name, " = ?")
+		if i != len(g.x.Fs)-1 {
+			g.B.W(", ")
+		}
+	}
+	g.B.W(" where ", g.x.PK.Name, " = ?`, ")
+
+	// params
+	for i, f := range g.x.Fs {
+		if f.Name == g.x.PK.Name {
+			continue
+		}
+		g.B.W("d.", f.Camel)
+		if i != len(g.x.Fs)-1 {
+			g.B.W(", ")
+		}
+	}
+
+	g.B.WL(", d.", g.x.PK.Camel, ")")
+	g.B.WL("if err != nil {")
+	g.B.WL("return 0, err")
+	g.B.WL("}")
+	g.B.WL("n,err := r.RowsAffected()")
+	g.B.WL("if err != nil {")
+	g.B.WL("return 0, err")
+	g.B.WL("}")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+	g.B.WL("return n, nil")
+	return g.B.WL("}")
+}
+
+func (g *gen) genTxRmByPK() {
+	var m bytes.Buffer
+	m.WriteString("RmByPK")
+
+	g.B.WL("func (mgr *_", g.T, "Mgr) Tx", m.String(), "(pk ", g.x.PK.GoT, ") (int64, error) {")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
+	g.B.WL(`query := "delete from `, g.x.DB, ".", g.x.TB, " where ", g.x.PK.Name, ` = ?"`)
+
+	g.B.WL("r,err := Zotx.Exec(query, pk)")
+	g.B.WL("if err != nil {")
+	g.B.WL("return 0, err")
+	g.B.WL("}")
+	g.B.WL("n,err := r.RowsAffected()")
+	g.B.WL("if err != nil {")
+	g.B.WL("return 0, err")
+	g.B.WL("}")
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
+	g.B.WL("return n, nil")
+	g.B.WL("}")
+}
+
 func (g *gen) genRmByPK() {
 	var m bytes.Buffer
 	m.WriteString("RmByPK")
@@ -612,6 +873,40 @@ func (g *gen) genRmByRule() {
 	g.B.WL(`}`)
 
 	g.B.WL("r,err := db.DB().Exec(query, p...)")
+	g.B.WL("if err != nil {")
+	g.B.WL("return 0, err")
+	g.B.WL("}")
+	g.B.WL("n,err := r.RowsAffected()")
+	g.B.WL("if err!=nil {")
+	g.B.WL("return 0, err")
+	g.B.WL("}")
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
+	g.B.WL("return n, nil")
+	g.B.WL("}")
+}
+
+func (g *gen) genTxRmByRule() {
+	var m bytes.Buffer
+	m.WriteString("RmByRule")
+
+	g.B.WL("func (mgr *_", g.T, "Mgr) Tx", m.String(), "(rules ...db.Rule) (int64, error) {")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
+	g.B.WL(`query := "delete from `, g.x.DB, ".", g.x.TB, ` where "`)
+
+	g.B.WL("var p []interface{}")
+
+	// params
+	g.B.WL(`for i, r := range rules {`)
+	g.B.WL(`if i > 0 {`)
+	g.B.WL(`	query += " and "`)
+	g.B.WL(`}`)
+	g.B.WL(`	query += r.S`)
+	g.B.WL(`	p = append(p, r.P)`)
+	g.B.WL(`}`)
+
+	g.B.WL("r,err := Zotx.Exec(query, p...)")
 	g.B.WL("if err != nil {")
 	g.B.WL("return 0, err")
 	g.B.WL("}")
