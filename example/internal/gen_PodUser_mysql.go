@@ -830,6 +830,40 @@ func (mgr *_PodUserMgr) UniFindByPK(id int64) (*PodUser, error) {
 	return &d, nil
 }
 
+func (mgr *_PodUserMgr) TxUniFindByPK(id int64) (*PodUser, error) {
+	util.Log(`pod.pod_user`, `UniFindByPK`)
+	row := Zotx.QueryRow(`select id, nickname, password, age, mobile_phone, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where id = ?`, id)
+
+	var id_1 sql.NullInt64
+	var nickname sql.NullString
+	var password sql.NullString
+	var age sql.NullInt64
+	var mobilePhone sql.NullString
+	var createDt sql.NullInt64
+	var isBlocked sql.NullBool
+	var updateDt sql.NullInt64
+	var statsDt sql.NullString
+	var dt sql.NullString
+
+	if err := row.Scan(&id_1, &nickname, &password, &age, &mobilePhone, &createDt, &isBlocked, &updateDt, &statsDt, &dt); err != nil {
+		return nil, err
+	}
+
+	d := PodUser{}
+	d.Id = id_1.Int64
+	d.Nickname = nickname.String
+	d.Password = password.String
+	d.Age = int32(age.Int64)
+	d.MobilePhone = mobilePhone.String
+	d.CreateDt = createDt.Int64
+	d.IsBlocked = isBlocked.Bool
+	d.UpdateDt = updateDt.Int64
+	d.StatsDt = util.SafeParseDateStr(statsDt.String)
+	d.Dt = util.SafeParseDateTimeStr(dt.String)
+	util.Log(`pod.pod_user`, `UniFindByPK ... done`)
+	return &d, nil
+}
+
 func (mgr *_PodUserMgr) Update(d *PodUser) (int64, error) {
 	util.Log(`pod.pod_user`, `Update`)
 	r, err := db.DB().Exec(`update pod.pod_user set nickname = ?, password = ?, age = ?, mobile_phone = ?, create_dt = ?, is_blocked = ?, update_dt = ?, stats_dt = ?, dt = ? where id = ?`, d.Nickname, d.Password, d.Age, d.MobilePhone, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Dt, d.Id)

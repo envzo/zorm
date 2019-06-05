@@ -80,6 +80,7 @@ func (g *gen) genORM(pkg string) []byte {
 
 	if g.x.PK != nil {
 		g.genUniFindByPk()
+		g.genTxUniFindByPk()
 		g.genUpdateByPK().Ln()
 		g.genTxUpdateByPK().Ln()
 		g.genRmByPK()
@@ -672,6 +673,73 @@ func (g *gen) genUniFindByPk() {
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
 	g.B.W("row := db.DB().QueryRow(`select ")
+	for i, f := range g.x.Fs {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(f.Name)
+	}
+	g.B.WL2(" from ", g.x.DB, ".", g.x.TB, " where ", g.x.PK.Name, " = ?`, ", util.LowerFirstLetter(g.x.PK.Camel), ")")
+
+	// temp variables
+	vm := map[string]string{}
+
+	for _, f := range g.x.Fs {
+		n := util.LowerFirstLetter(f.Camel)
+
+		if n == "type" {
+			n += "_"
+		}
+
+		if f.Name == g.x.PK.Name {
+			n += "_1"
+		}
+
+		g.B.W("var ", n)
+		vm[f.Camel] = n
+
+		g.B.Spc().WL(util.NilSqlType(f.T))
+	}
+
+	g.B.Ln().W("if err := row.Scan(")
+	for i, f := range g.x.Fs {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W("&", vm[f.Camel])
+	}
+	g.B.W("); err != nil {")
+	g.B.W("return nil, err")
+	g.B.WL2("}")
+
+	g.B.WL("d := ", g.T, "{}")
+	for _, f := range g.x.Fs {
+		g.B.W("d.", f.Camel, "=", util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
+	}
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
+	g.B.W("return &d, nil")
+
+	g.B.WL2("}")
+}
+
+func (g *gen) genTxUniFindByPk() {
+	var m bytes.Buffer
+	m.WriteString("UniFindByPK")
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) Tx", m.String(), "(", util.LowerFirstLetter(g.x.PK.Camel))
+
+	if g.x.PK.T == cls.YamlTimestamp { // it is convenient to use integer when querying
+		g.B.Spc().W(util.I64)
+	} else {
+		g.B.Spc().W(g.x.PK.GoT)
+	}
+	g.B.W(")")
+	g.B.Spc().W("(*" + g.T + ", error)").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
+
+	g.B.W("row := Zotx.QueryRow(`select ")
 	for i, f := range g.x.Fs {
 		if i > 0 {
 			g.B.W(", ")

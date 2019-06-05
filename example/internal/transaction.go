@@ -23,6 +23,10 @@ func (ztx * Ztx) Exec(query string, args ...interface{}) (sql.Result, error) {
 	return ztx.tx.Exec(query, args ...)
 }
 
+func (ztx *Ztx) QueryRow(query string, args ...interface{}) *sql.Row {
+	return ztx.tx.QueryRow(query, args ...)
+}
+
 func (ztx *Ztx) Commit() error {
 	return ztx.tx.Commit()
 }
@@ -30,3 +34,4 @@ func (ztx *Ztx) Commit() error {
 func (ztx *Ztx) Rollback() error {
 	return ztx.tx.Rollback()
 }
+
