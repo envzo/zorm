@@ -26,8 +26,8 @@ func (g *gen) genORM(pkg string) []byte {
 	g.B.WL(`"database/sql"`)
 	g.B.WL(`"strings"`)
 	g.B.WL2(`"time"`)
-	g.B.WL(`"github.com/envzo/zorm/db"`)
-	g.B.WL(`"github.com/envzo/zorm/util"`)
+	g.B.WL(`"github.com/ascode/zorm/db"`)
+	g.B.WL(`"github.com/ascode/zorm/util"`)
 	g.B.WL2(`)`)
 
 	g.B.WL(`var _ = errors.New`)
