@@ -6,7 +6,6 @@ import (
 	"github.com/envzo/zorm/parse"
 	"github.com/envzo/zorm/util"
 	"strconv"
-	"time"
 )
 
 func genSql(x *parse.X) string {
@@ -47,7 +46,7 @@ func genSql(x *parse.X) string {
 				case cls.YamlDate:
 					b.W(fmt.Sprintf(" default '%-v'", "1900-01-01"))
 				case cls.YamlDateTime:
-					b.W(fmt.Sprintf(" default %-v", "now()"))
+					b.W(fmt.Sprintf(" default %-v", "0"))
 				case cls.YamlDouble:
 					b.W(fmt.Sprintf(" default '%-v'", 0))
 				case cls.YamlFloat:
@@ -57,7 +56,7 @@ func genSql(x *parse.X) string {
 				case cls.YamlStr:
 					b.W(fmt.Sprintf(" default '%-v'", ""))
 				case cls.YamlTimestamp:
-					b.W(fmt.Sprintf(" default '%-v'", time.Now().Unix()))
+					b.W(fmt.Sprintf(" default %-v", 0))
 				default:
 
 				}
