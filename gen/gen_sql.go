@@ -1,12 +1,27 @@
 package gen
 
 import (
-	"strconv"
-
+	"fmt"
 	"github.com/envzo/zorm/cls"
 	"github.com/envzo/zorm/parse"
 	"github.com/envzo/zorm/util"
+	"strconv"
+	"strings"
 )
+
+var reservedWord = []string {
+	"CURRENT_TIMESTAMP",
+	"now()",
+}
+
+func isReserveWord(w string) bool {
+	for _, s := range reservedWord {
+		if strings.ToLower(w) == strings.ToLower(s) {
+			return true
+		}
+	}
+	return false
+}
 
 func genSql(x *parse.X) string {
 	b := NewBuf()
@@ -28,6 +43,14 @@ func genSql(x *parse.X) string {
 
 		if v.AutoIncr {
 			b.W(" auto_increment")
+		}
+
+		if v.Default != "" && v.Default != nil {
+			if isReserveWord(fmt.Sprintf("%-v", v.Default)) {
+				b.W(fmt.Sprintf(" default %-v", v.Default))
+			} else {
+				b.W(fmt.Sprintf(" default '%-v'", v.Default))
+			}
 		}
 
 		if v.Comment != "" {

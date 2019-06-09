@@ -64,7 +64,6 @@ func (p *parser) parse() (*X, error) {
 		return nil, err
 	}
 	x.PK = pk
-
 	for _, s := range p.d.Fields {
 		f, err := p.parseField(s)
 		if err != nil {
@@ -166,6 +165,8 @@ func (p *parser) parseField(s yaml.MapSlice) (*F, error) {
 			f.Comment = attr.Value.(string)
 		case Nullable:
 			f.Nullable = attr.Value.(bool)
+		case Default:
+			f.Default = attr.Value.(string)
 		default:
 			return nil, errors.New("unknown field: " + attrName)
 		}

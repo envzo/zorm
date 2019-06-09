@@ -17,7 +17,11 @@ pod_user:
     - mobile_phone: str
       __size: 18
       __nullable: false
+      __default: '13977q'
       __comment: 手机号
+    - sequence: i64
+      __comment: 顺序
+      __default: '1'
     - create_dt: timestamp
       __nullable: false
     - is_blocked: bool
@@ -26,6 +30,7 @@ pod_user:
       __comment: 更新时间
     - stats_dt: date
     - dt: datetime
+      __default: now()
   pk: id
   uniques: [[nickname,mobile_phone], [mobile_phone]]
   indexes: [[create_dt], [update_dt]]

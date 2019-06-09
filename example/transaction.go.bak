@@ -12,7 +12,7 @@ type Ztx struct {
 
 var Zotx = &Ztx{}
 
-func (ztx *Ztx) Begin() {
+func (ztx * Ztx) Begin() {
 	txTest, err := db.DB().Begin()
 	if err != nil {
 
@@ -37,27 +37,27 @@ func (ztx *Ztx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, er
 }
 
 func (ztx *Ztx) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return ztx.tx.Query(query, args...)
+	return ztx.tx.Query(query, args ...)
 }
 
 func (ztx *Ztx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	return ztx.tx.QueryContext(ctx, query, args...)
+	return ztx.tx.QueryContext(ctx, query, args ...)
 }
 
 func (ztx *Ztx) QueryRow(query string, args ...interface{}) *sql.Row {
-	return ztx.tx.QueryRow(query, args...)
+	return ztx.tx.QueryRow(query, args ...)
 }
 
 func (ztx *Ztx) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
-	return ztx.tx.QueryRowContext(ctx, query, args...)
+	return ztx.tx.QueryRowContext(ctx, query, args ...)
 }
 
-func (ztx *Ztx) Exec(query string, args ...interface{}) (sql.Result, error) {
-	return ztx.tx.Exec(query, args...)
+func (ztx * Ztx) Exec(query string, args ...interface{}) (sql.Result, error) {
+	return ztx.tx.Exec(query, args ...)
 }
 
 func (ztx *Ztx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	return ztx.tx.ExecContext(ctx, query, args...)
+	return ztx.tx.ExecContext(ctx, query, args ...)
 }
 
 func (ztx *Ztx) Commit() error {

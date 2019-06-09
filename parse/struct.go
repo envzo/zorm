@@ -11,6 +11,7 @@ const (
 	Size     = "__size"
 	Comment  = "__comment"
 	Nullable = "__nullable"
+	Default = "__default"
 )
 
 var (
@@ -33,6 +34,7 @@ type Def struct {
 	DB      string          `yaml:"db"`
 	TB      string          `yaml:"tb"`
 	Comment string          `yaml:"comment"`
+	Default interface{}			`yaml:"default"`
 	Fields  []yaml.MapSlice `yaml:"fields"`
 	PK      string          `yaml:"pk"`
 	Indexes [][]string      `yaml:"indexes"`
@@ -45,6 +47,7 @@ type F struct {
 	Size     int64
 	Nullable bool
 	AutoIncr bool
+	Default	 interface{}
 	Comment  string
 
 	Camel string

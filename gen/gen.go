@@ -3,6 +3,7 @@ package gen
 
 import (
 	"bytes"
+	"fmt"
 	"go/ast"
 	"go/format"
 	"go/parser"
@@ -23,6 +24,12 @@ type gen struct {
 func Gen(file, folder, pkg string) error {
 	b, err := ioutil.ReadFile(file)
 	if err != nil {
+		return err
+	}
+
+	err = genTransaction(file, folder, pkg)
+	if err != nil {
+		fmt.Println(err.Error())
 		return err
 	}
 

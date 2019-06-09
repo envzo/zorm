@@ -54,7 +54,9 @@ func (g *gen) genORM(pkg string) []byte {
 
 	for _, fs := range g.x.Uniques {
 		g.genIsExists(fs)
+		g.genTxIsExists(fs)
 		g.genUniFind(fs)
+		g.genTxUniFind(fs)
 		g.genUniUpdate(fs)
 		g.genTxUniUpdate(fs)
 		g.genUniRm(fs)
@@ -63,7 +65,9 @@ func (g *gen) genORM(pkg string) []byte {
 
 	for _, fs := range g.x.Indexes {
 		g.genFindByIndex(fs)
+		g.genTxFindByIndex(fs)
 		g.genCountByIndex(fs)
+		g.genTxCountByIndex(fs)
 	}
 
 	g.genFindByMultiJoin()
@@ -145,6 +149,60 @@ func (g *gen) genIsExists(args []*parse.F) {
 	g.B.WL2("}")
 }
 
+func (g *gen) genTxIsExists(args []*parse.F) {
+	var m bytes.Buffer
+	m.WriteString("Is")
+	for _, f := range args {
+		m.WriteString(f.Camel)
+	}
+	m.WriteString("Exists")
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(")
+
+	for i, f := range args {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(util.LowerFirstLetter(f.Camel)).Spc()
+
+		if f.T == cls.YamlTimestamp { // it is convenient to use integer when querying
+			g.B.W(util.I64)
+		} else {
+			g.B.W(f.GoT)
+		}
+	}
+	g.B.W(")")
+	g.B.Spc().W("(bool, error)").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
+
+	g.B.W("row := Zotx.QueryRow(`select count(1) from ", g.x.DB, ".", g.x.TB, " where ")
+
+	for i, f := range args {
+		if i > 0 {
+			g.B.W(" and ")
+		}
+		g.B.W(f.Name, " = ?")
+	}
+	g.B.WL("`, ")
+
+	for i, f := range args {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(util.LowerFirstLetter(f.Camel)).Spc()
+	}
+	g.B.WL2(")")
+
+	g.B.WL("var c sql.NullInt64")
+	g.B.Ln().W("if err := row.Scan(&c); err!= nil {")
+	g.B.W("return false, err")
+	g.B.WL("}")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+	g.B.W("return c.Int64 > 0, nil")
+
+	g.B.WL2("}")
+}
+
 func (g *gen) genIsExistsByPK() {
 	var m bytes.Buffer
 	m.WriteString("IsExistsByPK")
@@ -187,6 +245,108 @@ func (g *gen) genUniFind(args []*parse.F) {
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
 	g.B.W("row := db.DB().QueryRow(`select ")
+	for i, f := range g.x.Fs {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(f.Name)
+	}
+	g.B.W(" from ", g.x.DB, ".", g.x.TB, " where ")
+
+	for i, f := range args {
+		if i > 0 {
+			g.B.W(" and ")
+		}
+		g.B.W(f.Name, " = ?")
+	}
+	g.B.WL("`, ")
+
+	for i, f := range args {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		if f.T == cls.YamlDate {
+			g.B.W(util.LowerFirstLetter(f.Camel), `.Format("2006-01-02")`).Spc()
+		} else if f.T == cls.YamlDateTime {
+			g.B.W(util.LowerFirstLetter(f.Camel), `.Format("2006-01-02 15:04:05")`).Spc()
+		} else {
+			g.B.W(util.LowerFirstLetter(f.Camel)).Spc()
+		}
+	}
+	g.B.WL2(")")
+
+	// temp variables
+	vm := map[string]string{}
+
+	for _, f := range g.x.Fs {
+		n := util.LowerFirstLetter(f.Camel)
+
+		if n == "type" {
+			n += "_"
+		}
+
+		for _, arg := range args {
+			if arg.Name == f.Name {
+				n += "_1"
+				break
+			}
+		}
+
+		g.B.W("var ", n)
+		vm[f.Camel] = n
+
+		g.B.Spc().WL(util.NilSqlType(f.T))
+	}
+
+	g.B.Ln().W("if err := row.Scan(")
+	for i, f := range g.x.Fs {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W("&", vm[f.Camel])
+	}
+	g.B.W("); err!= nil {")
+	g.B.W("return nil, err")
+	g.B.WL2("}")
+
+	g.B.WL("d := ", g.T, "{}")
+	for _, f := range g.x.Fs {
+		g.B.W("d.", f.Camel, "=", util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
+	}
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
+	g.B.W("return &d, nil")
+
+	g.B.WL2("}")
+}
+
+func (g *gen) genTxUniFind(args []*parse.F) {
+	var m bytes.Buffer
+	m.WriteString("UniFindBy")
+	for _, f := range args {
+		m.WriteString(f.Camel)
+	}
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(")
+
+	for i, f := range args {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(util.LowerFirstLetter(f.Camel)).Spc()
+
+		if f.T == cls.YamlTimestamp { // it is convenient to use integer when querying
+			g.B.W(util.I64)
+		} else {
+			g.B.W(f.GoT)
+		}
+	}
+	g.B.W(")")
+	g.B.Spc().W("(*" + g.T + ", error)").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
+
+	g.B.W("row := Zotx.QueryRow(`select ")
 	for i, f := range g.x.Fs {
 		if i > 0 {
 			g.B.W(", ")
@@ -1118,6 +1278,135 @@ func (g *gen) genFindByIndex(args []*parse.F) {
 	g.B.WL2("}")
 }
 
+func (g *gen) genTxFindByIndex(args []*parse.F) {
+	var m bytes.Buffer
+	m.WriteString("FindBy")
+	for _, f := range args {
+		m.WriteString(f.Camel)
+	}
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(")
+
+	for i, arg := range args {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(util.LowerFirstLetter(arg.Camel)).Spc()
+
+		if arg.T == cls.YamlTimestamp { // it is convenient to use integer when querying
+			g.B.W(util.I64)
+		} else {
+			g.B.W(arg.GoT)
+		}
+	}
+	g.B.W(", order []string, offset, limit int64)")
+	g.B.Spc().W("([]*" + g.T + ", error)").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
+
+	// make query sel
+	g.B.W("query := `select ")
+	for i, f := range g.x.Fs {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(f.Name)
+	}
+	g.B.W(" from ", g.x.DB, ".", g.x.TB, " where ")
+	for i, f := range args {
+		if i > 0 {
+			g.B.W(" and ")
+		}
+		g.B.W(f.Name, " = ?")
+	}
+	g.B.WL("`")
+	g.B.WL("for i, o := range order {")
+	g.B.WL("if i==0 {")
+	g.B.WL(`query += " order by "`)
+	g.B.WL("} else {")
+	g.B.WL(`query += ", "`)
+	g.B.WL("}")
+	g.B.WL(`if strings.HasPrefix(o, "-") {`)
+	g.B.WL("	query += o[1:]")
+	g.B.WL("} else {")
+	g.B.WL("	query += o")
+	g.B.WL("}")
+	g.B.WL("if o[0] == '-' {")
+	g.B.WL(`query += " desc"`)
+	g.B.WL("}")
+	g.B.WL("}")
+	g.B.WL("if offset != -1 && limit != -1 {")
+	g.B.WL(`query += fmt.Sprintf(" limit %d, %d", offset, limit)`)
+	g.B.WL2("}")
+	// end make query sql
+
+	g.B.W("rows, err := Zotx.Query(query, ")
+	for i, f := range args {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(util.LowerFirstLetter(f.Camel)).Spc()
+	}
+	g.B.WL(")")
+	g.B.WL("if err != nil {")
+	g.B.WL("return nil, err")
+	g.B.WL("}")
+	g.B.WL2("defer rows.Close()")
+
+	// temp variables
+	vm := map[string]string{}
+
+	for _, f := range g.x.Fs {
+		n := util.LowerFirstLetter(f.Camel)
+
+		if n == "type" {
+			n += "_"
+		}
+
+		// todo need refine
+		for _, arg := range args {
+			if arg.Name == f.Name {
+				n += "_1"
+				break
+			}
+		}
+
+		g.B.W("var ", n)
+		vm[f.Camel] = n
+
+		g.B.Spc().WL(util.NilSqlType(f.T))
+	}
+
+	g.B.Ln().WL2("var ret []*", g.T)
+
+	g.B.WL("for rows.Next(){")
+
+	g.B.W("if err = rows.Scan(")
+	for i, f := range g.x.Fs {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W("&", vm[f.Camel])
+	}
+	g.B.W("); err!= nil {")
+	g.B.W("return nil, err")
+	g.B.WL2("}")
+
+	g.B.WL("d := ", g.T, "{}")
+	for _, f := range g.x.Fs {
+		g.B.W("d.", f.Camel, "=", util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
+	}
+
+	g.B.WL("ret = append(ret, &d)")
+
+	g.B.WL("}") // end rows loop
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
+	g.B.W("return ret, nil")
+
+	g.B.WL2("}")
+}
+
 func (g *gen) genFindByJoin() {
 	g.B.W("func (mgr", " *_", g.T, "Mgr) FindByJoin(t string, on, where []db.Rule, order []string, offset, limit int64) ")
 	g.B.W("([]*" + g.T + ", error)").WL("{")
@@ -1586,6 +1875,65 @@ func (g *gen) genCountByIndex(args []*parse.F) {
 	// end make query sql
 
 	g.B.W("row := db.DB().QueryRow(query, ")
+	for i, f := range args {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(util.LowerFirstLetter(f.Camel)).Spc()
+	}
+	g.B.WL(")")
+
+	g.B.Ln().WL2("var c sql.NullInt64")
+
+	g.B.W("if err := row.Scan(&c); err != nil {")
+	g.B.W("return 0, err")
+	g.B.WL2("}")
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
+	g.B.W("return c.Int64, nil")
+
+	g.B.WL2("}")
+}
+
+func (g *gen) genTxCountByIndex(args []*parse.F) {
+	var m bytes.Buffer
+	m.WriteString("CountBy")
+	for _, f := range args {
+		m.WriteString(f.Camel)
+	}
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(")
+
+	for i, arg := range args {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(util.LowerFirstLetter(arg.Camel)).Spc()
+
+		if arg.T == cls.YamlTimestamp { // it is convenient to use integer when querying
+			g.B.W(util.I64)
+		} else {
+			g.B.W(arg.GoT)
+		}
+	}
+	g.B.W(")")
+	g.B.Spc().W("(int64, error)").WL("{")
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
+
+	// make query sel
+	g.B.W("query := `select count(1) from ", g.x.DB, ".", g.x.TB, " where ")
+	for i, f := range args {
+		if i > 0 {
+			g.B.W(" and ")
+		}
+		g.B.W(f.Name, " = ?")
+	}
+	g.B.WL("`")
+	// end make query sql
+
+	g.B.W("row := Zotx.QueryRow(query, ")
 	for i, f := range args {
 		if i > 0 {
 			g.B.W(", ")
