@@ -151,7 +151,7 @@ func (g *gen) genIsExists(args []*parse.F) {
 
 func (g *gen) genTxIsExists(args []*parse.F) {
 	var m bytes.Buffer
-	m.WriteString("Is")
+	m.WriteString("TxIs")
 	for _, f := range args {
 		m.WriteString(f.Camel)
 	}
@@ -323,7 +323,7 @@ func (g *gen) genUniFind(args []*parse.F) {
 
 func (g *gen) genTxUniFind(args []*parse.F) {
 	var m bytes.Buffer
-	m.WriteString("UniFindBy")
+	m.WriteString("TxUniFindBy")
 	for _, f := range args {
 		m.WriteString(f.Camel)
 	}
@@ -506,12 +506,12 @@ SetParam:
 
 func (g *gen) genTxUniUpdate(args []*parse.F) {
 	var m bytes.Buffer
-	m.WriteString("UpdateBy")
+	m.WriteString("TxUpdateBy")
 	for _, f := range args {
 		m.WriteString(f.Camel)
 	}
 
-	g.B.W("func (mgr", " *_", g.T, "Mgr) Tx", m.String(), "(d *", g.T, ")")
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(d *", g.T, ")")
 	g.B.Spc().W("(int64, error) ").WL("{")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	g.B.W("r,err := Zotx.Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
@@ -629,12 +629,12 @@ func (g *gen) genUniRm(args []*parse.F) {
 
 func (g *gen) genTxUniRm(args []*parse.F) {
 	var m bytes.Buffer
-	m.WriteString("UniRmBy")
+	m.WriteString("TxUniRmBy")
 	for _, f := range args {
 		m.WriteString(f.Camel)
 	}
 
-	g.B.W("func (mgr", " *_", g.T, "Mgr) Tx", m.String(), "(d *", g.T, ")")
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(d *", g.T, ")")
 	g.B.Spc().W("(int64, error) ").WL("{")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	g.B.W("r,err := Zotx.Exec(`delete from ", g.x.DB, ".", g.x.TB, " where ")
@@ -886,9 +886,9 @@ func (g *gen) genUniFindByPk() {
 
 func (g *gen) genTxUniFindByPk() {
 	var m bytes.Buffer
-	m.WriteString("UniFindByPK")
+	m.WriteString("TxUniFindByPK")
 
-	g.B.W("func (mgr", " *_", g.T, "Mgr) Tx", m.String(), "(", util.LowerFirstLetter(g.x.PK.Camel))
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(", util.LowerFirstLetter(g.x.PK.Camel))
 
 	if g.x.PK.T == cls.YamlTimestamp { // it is convenient to use integer when querying
 		g.B.Spc().W(util.I64)
@@ -995,9 +995,9 @@ func (g *gen) genUpdateByPK() *Buf {
 
 func (g *gen) genTxUpdateByPK() *Buf {
 	var m bytes.Buffer
-	m.WriteString("Update")
+	m.WriteString("TxUpdate")
 
-	g.B.WL("func (mgr *_", g.T, "Mgr) Tx", m.String(), "(d *", g.T, ") (int64, error) {")
+	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(d *", g.T, ") (int64, error) {")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	g.B.W("r,err:=Zotx.Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
 	for i, f := range g.x.Fs {
@@ -1037,9 +1037,9 @@ func (g *gen) genTxUpdateByPK() *Buf {
 
 func (g *gen) genTxRmByPK() {
 	var m bytes.Buffer
-	m.WriteString("RmByPK")
+	m.WriteString("TxRmByPK")
 
-	g.B.WL("func (mgr *_", g.T, "Mgr) Tx", m.String(), "(pk ", g.x.PK.GoT, ") (int64, error) {")
+	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(pk ", g.x.PK.GoT, ") (int64, error) {")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	g.B.WL(`query := "delete from `, g.x.DB, ".", g.x.TB, " where ", g.x.PK.Name, ` = ?"`)
 
@@ -1117,9 +1117,9 @@ func (g *gen) genRmByRule() {
 
 func (g *gen) genTxRmByRule() {
 	var m bytes.Buffer
-	m.WriteString("RmByRule")
+	m.WriteString("TxRmByRule")
 
-	g.B.WL("func (mgr *_", g.T, "Mgr) Tx", m.String(), "(rules ...db.Rule) (int64, error) {")
+	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(rules ...db.Rule) (int64, error) {")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	g.B.WL(`query := "delete from `, g.x.DB, ".", g.x.TB, ` where "`)
 
@@ -1280,7 +1280,7 @@ func (g *gen) genFindByIndex(args []*parse.F) {
 
 func (g *gen) genTxFindByIndex(args []*parse.F) {
 	var m bytes.Buffer
-	m.WriteString("FindBy")
+	m.WriteString("TxFindBy")
 	for _, f := range args {
 		m.WriteString(f.Camel)
 	}
@@ -1898,7 +1898,7 @@ func (g *gen) genCountByIndex(args []*parse.F) {
 
 func (g *gen) genTxCountByIndex(args []*parse.F) {
 	var m bytes.Buffer
-	m.WriteString("CountBy")
+	m.WriteString("TxCountBy")
 	for _, f := range args {
 		m.WriteString(f.Camel)
 	}
