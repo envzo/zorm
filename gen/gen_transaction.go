@@ -51,7 +51,7 @@ func genTransactionFileString(pkg string) []byte {
 	b.WL("}")
 	b.WL("")
 	b.WL("var Zotx = &Ztx{}")
-	b.WL("func (ztx * Ztx) Begin() {")
+	b.WL("func (ztx * Ztx) Begin() error {")
 	b.WL("	txTest, err := db.DB().Begin()")
 	b.WL("	if err != nil {")
 	b.WL("		return err")
