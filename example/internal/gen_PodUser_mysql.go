@@ -771,6 +771,96 @@ func (mgr *_PodUserMgr) FindByMultiJoin(joins []db.Join, where []db.Rule, order 
 	return ret, nil
 }
 
+func (mgr *_PodUserMgr) TxFindByMultiJoin(joins []db.Join, where []db.Rule, order []string, offset, limit int64) ([]*PodUser, error) {
+	util.Log(`pod.pod_user`, `TxFindByMultiJoin`)
+	var params []interface{}
+
+	query := `select pod_user.id, pod_user.nickname, pod_user.password, pod_user.age, pod_user.mobile_phone, pod_user.sequence, pod_user.create_dt, pod_user.is_blocked, pod_user.update_dt, pod_user.stats_dt, pod_user.dt from pod.pod_user`
+	for _, join := range joins {
+		query += ` join pod.` + join.T + ` on `
+		for i, v := range join.Rule {
+			if i > 0 {
+				query += " and "
+			}
+			query += v.S
+			if v.P != nil {
+				params = append(params, v.P)
+			}
+		}
+	}
+	for i, v := range where {
+		if i == 0 {
+			query += " where "
+		} else {
+			query += " and "
+		}
+		query += v.S
+		if v.P != nil {
+			params = append(params, v.P)
+		}
+	}
+	for i, o := range order {
+		if i == 0 {
+			query += " order by "
+		} else {
+			query += ", "
+		}
+		if strings.HasPrefix(o, "-") {
+			query += o[1:]
+		} else {
+			query += o
+		}
+		if o[0] == '-' {
+			query += " desc"
+		}
+	}
+	if offset != -1 && limit != -1 {
+		query += fmt.Sprintf(" limit %d, %d", offset, limit)
+	}
+
+	rows, err := Zotx.Query(query, params...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var id sql.NullInt64
+	var nickname sql.NullString
+	var password sql.NullString
+	var age sql.NullInt64
+	var mobilePhone sql.NullString
+	var sequence sql.NullInt64
+	var createDt sql.NullInt64
+	var isBlocked sql.NullBool
+	var updateDt sql.NullInt64
+	var statsDt sql.NullString
+	var dt sql.NullString
+
+	var ret []*PodUser
+
+	for rows.Next() {
+		if err = rows.Scan(&id, &nickname, &password, &age, &mobilePhone, &sequence, &createDt, &isBlocked, &updateDt, &statsDt, &dt); err != nil {
+			return nil, err
+		}
+
+		d := PodUser{}
+		d.Id = id.Int64
+		d.Nickname = nickname.String
+		d.Password = password.String
+		d.Age = int32(age.Int64)
+		d.MobilePhone = mobilePhone.String
+		d.Sequence = sequence.Int64
+		d.CreateDt = createDt.Int64
+		d.IsBlocked = isBlocked.Bool
+		d.UpdateDt = updateDt.Int64
+		d.StatsDt = util.SafeParseDateStr(statsDt.String)
+		d.Dt = util.SafeParseDateTimeStr(dt.String)
+		ret = append(ret, &d)
+	}
+	util.Log(`pod.pod_user`, `TxFindByMultiJoin ... done`)
+	return ret, nil
+}
+
 func (mgr *_PodUserMgr) CountByMultiJoin(joins []db.Join, where []db.Rule) (int64, error) {
 	util.Log(`pod.pod_user`, `CountByMultiJoin`)
 	var params []interface{}
@@ -812,6 +902,11 @@ func (mgr *_PodUserMgr) CountByMultiJoin(joins []db.Join, where []db.Rule) (int6
 
 func (mgr *_PodUserMgr) FindByJoin(t string, on, where []db.Rule, order []string, offset, limit int64) ([]*PodUser, error) {
 	return mgr.FindByMultiJoin([]db.Join{
+		{T: t, Rule: on},
+	}, where, order, offset, limit)
+}
+func (mgr *_PodUserMgr) TxFindByJoin(t string, on, where []db.Rule, order []string, offset, limit int64) ([]*PodUser, error) {
+	return mgr.TxFindByMultiJoin([]db.Join{
 		{T: t, Rule: on},
 	}, where, order, offset, limit)
 }
