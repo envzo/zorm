@@ -1438,7 +1438,7 @@ func (g *gen) genFindByMultiJoin() {
 	g.B.WL2("var params []interface{}")
 
 	// make query sel
-	g.B.W("query := `select ")
+	g.B.W("query := `select distinct ")
 	for i, f := range g.x.Fs {
 		if i > 0 {
 			g.B.W(", ")
@@ -1570,7 +1570,7 @@ func (g *gen) genTxFindByMultiJoin() {
 	g.B.WL2("var params []interface{}")
 
 	// make query sel
-	g.B.W("query := `select ")
+	g.B.W("query := `select distinct ")
 	for i, f := range g.x.Fs {
 		if i > 0 {
 			g.B.W(", ")

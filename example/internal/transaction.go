@@ -12,7 +12,7 @@ type Ztx struct {
 
 var Zotx = &Ztx{}
 
-func (ztx *Ztx) Begin() {
+func (ztx *Ztx) Begin() error {
 	txTest, err := db.DB().Begin()
 	if err != nil {
 		return err

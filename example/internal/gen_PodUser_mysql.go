@@ -685,7 +685,7 @@ func (mgr *_PodUserMgr) FindByMultiJoin(joins []db.Join, where []db.Rule, order 
 	util.Log(`pod.pod_user`, `FindByMultiJoin`)
 	var params []interface{}
 
-	query := `select pod_user.id, pod_user.nickname, pod_user.password, pod_user.age, pod_user.mobile_phone, pod_user.sequence, pod_user.create_dt, pod_user.is_blocked, pod_user.update_dt, pod_user.stats_dt, pod_user.dt from pod.pod_user`
+	query := `select distinct pod_user.id, pod_user.nickname, pod_user.password, pod_user.age, pod_user.mobile_phone, pod_user.sequence, pod_user.create_dt, pod_user.is_blocked, pod_user.update_dt, pod_user.stats_dt, pod_user.dt from pod.pod_user`
 	for _, join := range joins {
 		query += ` join pod.` + join.T + ` on `
 		for i, v := range join.Rule {
@@ -775,7 +775,7 @@ func (mgr *_PodUserMgr) TxFindByMultiJoin(joins []db.Join, where []db.Rule, orde
 	util.Log(`pod.pod_user`, `TxFindByMultiJoin`)
 	var params []interface{}
 
-	query := `select pod_user.id, pod_user.nickname, pod_user.password, pod_user.age, pod_user.mobile_phone, pod_user.sequence, pod_user.create_dt, pod_user.is_blocked, pod_user.update_dt, pod_user.stats_dt, pod_user.dt from pod.pod_user`
+	query := `select distinct pod_user.id, pod_user.nickname, pod_user.password, pod_user.age, pod_user.mobile_phone, pod_user.sequence, pod_user.create_dt, pod_user.is_blocked, pod_user.update_dt, pod_user.stats_dt, pod_user.dt from pod.pod_user`
 	for _, join := range joins {
 		query += ` join pod.` + join.T + ` on `
 		for i, v := range join.Rule {
