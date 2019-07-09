@@ -76,11 +76,13 @@ func (g *gen) genORM(pkg string) []byte {
 	g.genFindByJoin()
 	g.genTxFindByJoin()
 	g.genFindByCond()
+	g.genTxFindByCond()
 	g.genFindAllByCond()
 	g.genCreate().Ln()
 	g.genTxCreate().Ln()
 	g.genUpsert().Ln()
 	g.genCountByRule()
+	g.genTxCountByRule()
 	g.genRmByRule()
 	g.genTxRmByRule()
 
@@ -1866,6 +1868,119 @@ func (g *gen) genFindByCond() {
 	g.B.WL2("}")
 }
 
+func (g *gen) genTxFindByCond() {
+	var m bytes.Buffer
+	m.WriteString("TxFindByCond")
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(where []db.Rule, order []string, offset, limit int64)")
+	g.B.Spc().W("([]*" + g.T + ", error)").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
+
+	g.B.WL2("var params []interface{}")
+
+	// make query sel
+	g.B.W("query := `select ")
+	for i, f := range g.x.Fs {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(f.Name)
+	}
+	g.B.WL(" from ", g.x.DB, ".", g.x.TB, " where `")
+	g.B.WL(`for i, v := range where {`)
+	g.B.WL(`	if i > 0 {`)
+	g.B.WL(`		query += " and "`)
+	g.B.WL(`	}`)
+	g.B.WL(`	query += v.S`)
+	g.B.WL(`	if v.P != nil {`)
+	g.B.WL(`		params = append(params, v.P)`)
+	g.B.WL(`	}`)
+	g.B.WL(`}`)
+
+	g.B.WL("for i, o := range order {")
+	g.B.WL("if i == 0 {")
+	g.B.WL(`query += " order by "`)
+	g.B.WL("} else {")
+	g.B.WL(`query += ", "`)
+	g.B.WL("}")
+	g.B.WL(`if strings.HasPrefix(o, "-") {`)
+	g.B.WL("	query += o[1:]")
+	g.B.WL("} else {")
+	g.B.WL("	query += o")
+	g.B.WL("}")
+	g.B.WL("if o[0] == '-' {")
+	g.B.WL(`query += " desc"`)
+	g.B.WL("}")
+	g.B.WL("}")
+	g.B.WL("if offset != -1 && limit != -1 {")
+	g.B.WL(`query += fmt.Sprintf(" limit %d, %d", offset, limit)`)
+	g.B.WL2("}")
+	// end make query sql
+
+	g.B.WL("rows, err := Zotx.Query(query, params...)")
+	g.B.WL("if err != nil {")
+	g.B.WL("return nil, err")
+	g.B.WL("}")
+	g.B.WL2("defer rows.Close()")
+
+	// temp variables
+	vm := map[string]string{}
+
+	args := map[string]bool{
+		"t":      true,
+		"on":     true,
+		"where":  true,
+		"order":  true,
+		"offset": true,
+		"limit":  true,
+	}
+
+	for _, f := range g.x.Fs {
+		n := util.LowerFirstLetter(f.Camel)
+
+		if n == "type" {
+			n += "_"
+		}
+
+		if _, ok := args[f.Name]; ok {
+			n += "_1"
+		}
+
+		g.B.W("var ", n)
+		vm[f.Camel] = n
+
+		g.B.Spc().WL(util.NilSqlType(f.T))
+	}
+
+	g.B.Ln().WL2("var ret []*", g.T)
+
+	g.B.WL("for rows.Next() {")
+
+	g.B.W("if err = rows.Scan(")
+	for i, f := range g.x.Fs {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W("&", vm[f.Camel])
+	}
+	g.B.W("); err != nil {")
+	g.B.W("return nil, err")
+	g.B.WL2("}")
+
+	g.B.WL("d := ", g.T, "{}")
+	for _, f := range g.x.Fs {
+		g.B.W("d.", f.Camel, "=", util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
+	}
+
+	g.B.WL("ret = append(ret, &d)")
+
+	g.B.WL("}") // end rows loop
+
+	g.B.W("return ret, nil")
+
+	g.B.WL2("}")
+}
+
 func (g *gen) genFindAllByCond() {
 	var m bytes.Buffer
 	m.WriteString("FindAllByCond")
@@ -2121,6 +2236,42 @@ func (g *gen) genCountByRule() {
 	// end make query sql
 
 	g.B.WL2("row := db.DB().QueryRow(query, p...)")
+
+	g.B.WL2("var c sql.NullInt64")
+
+	g.B.WL("if err := row.Scan(&c); err != nil {")
+	g.B.WL("return 0, err")
+	g.B.WL2("}")
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
+	g.B.WL("return c.Int64, nil")
+	g.B.WL2("}")
+}
+
+func (g *gen) genTxCountByRule() {
+	var m bytes.Buffer
+	m.WriteString("TxCountByRule")
+
+	g.B.WL("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(rules ...db.Rule) (int64, error) {")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
+
+	// make query sel
+	g.B.WL(`var p []interface{}`)
+	g.B.WL("query := `select count(1) from ", g.x.DB, ".", g.x.TB, " where `")
+	g.B.WL(`for i, rule := range rules {`)
+	g.B.WL(`	if i > 0 {`)
+	g.B.WL(`		query += " and "`)
+	g.B.WL(`	}`)
+	g.B.WL(`	query += rule.S`)
+	g.B.WL(`	if rule.P != nil {`)
+	g.B.WL(`		p = append(p, rule.P)`)
+	g.B.WL2(`	}`)
+	g.B.WL2(`}`)
+
+	// end make query sql
+
+	g.B.WL2("row := Zotx.QueryRow(query, p...)")
 
 	g.B.WL2("var c sql.NullInt64")
 
