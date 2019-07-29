@@ -976,9 +976,11 @@ func (g *gen) genFindByCond() {
 		}
 		g.B.W(f.Name)
 	}
-	g.B.WL(" from ", g.x.DB, ".", g.x.TB, " where `")
+	g.B.WL(" from ", g.x.DB, ".", g.x.TB, "`")
 	g.B.WL(`for i, v := range where {`)
-	g.B.WL(`	if i > 0 {`)
+	g.B.WL(`if i == 0 {`)
+	g.B.WL(`query += " where "`)
+	g.B.WL(`} else if i > 0 {`)
 	g.B.WL(`		query += " and "`)
 	g.B.WL(`	}`)
 	g.B.WL(`	query += v.S`)
