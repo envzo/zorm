@@ -56,7 +56,7 @@ type X struct {
 	DB      string
 	TB      string
 	PK      *F
-	Fs      []*F
+	Fields  []*F
 	Comment string
 	Uniques [][]*F
 	Indexes [][]*F

@@ -38,7 +38,7 @@ func (g *gen) genORM(pkg string) []byte {
 	g.B.WL(`var _ = time.Nanosecond`)
 
 	g.B.WL("type ", g.T, " struct {")
-	for _, f := range g.x.Fs {
+	for _, f := range g.x.Fields {
 		g.B.Tab().W(f.Camel).Spc().W(f.GoT).Ln()
 	}
 	g.B.Ln().WL("baby bool")
@@ -180,7 +180,7 @@ func (g *gen) genUniFind(args []*parse.F) {
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
 	g.B.W("row := db.DB().QueryRow(`select ")
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if i > 0 {
 			g.B.W(", ")
 		}
@@ -213,7 +213,7 @@ func (g *gen) genUniFind(args []*parse.F) {
 	// temp variables
 	vm := map[string]string{}
 
-	for _, f := range g.x.Fs {
+	for _, f := range g.x.Fields {
 		n := util.LowerFirstLetter(f.Camel)
 
 		if n == "type" {
@@ -234,7 +234,7 @@ func (g *gen) genUniFind(args []*parse.F) {
 	}
 
 	g.B.Ln().W("if err := row.Scan(")
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if i > 0 {
 			g.B.W(", ")
 		}
@@ -245,7 +245,7 @@ func (g *gen) genUniFind(args []*parse.F) {
 	g.B.WL2("}")
 
 	g.B.WL("d := ", g.T, "{}")
-	for _, f := range g.x.Fs {
+	for _, f := range g.x.Fields {
 		g.B.W("d.", f.Camel, "=", util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
 	}
 
@@ -269,16 +269,14 @@ func (g *gen) genUniUpdate(args []*parse.F) {
 	g.B.W("r,err := db.DB().Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
 	flag := false
 SetField:
-	for _, f := range g.x.Fs {
+	for _, f := range g.x.Fields {
 		if g.x.PK != nil && f.Name == g.x.PK.Name && g.x.PK.AutoIncr {
 			continue
 		}
 
-		for _, fields := range g.x.Uniques {
-			for _, field := range fields {
-				if f.Name == field.Name {
-					continue SetField
-				}
+		for _, field := range args {
+			if field.Name == f.Name {
+				continue SetField
 			}
 		}
 
@@ -300,16 +298,14 @@ SetField:
 
 	// params
 SetParam:
-	for _, f := range g.x.Fs {
+	for _, f := range g.x.Fields {
 		if g.x.PK != nil && f.Name == g.x.PK.Name && g.x.PK.AutoIncr {
 			continue
 		}
 
-		for _, fields := range g.x.Uniques {
-			for _, field := range fields {
-				if f.Name == field.Name {
-					continue SetParam
-				}
+		for _, field := range args {
+			if field.Name == f.Name {
+				continue SetParam
 			}
 		}
 
@@ -392,12 +388,12 @@ func (g *gen) genCreate() *Buf {
 	}
 	g.B.W(" := db.DB().Exec(`insert into ", g.x.DB, ".", g.x.TB, " (")
 	cnt := 0
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if g.x.PK != nil && g.x.PK.AutoIncr && f.Name == g.x.PK.Name {
 			continue
 		}
 		g.B.W(f.Name)
-		if i != len(g.x.Fs)-1 {
+		if i != len(g.x.Fields)-1 {
 			g.B.W(", ")
 		}
 		cnt++
@@ -411,12 +407,12 @@ func (g *gen) genCreate() *Buf {
 	}
 	g.B.W(")`,")
 
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if g.x.PK != nil && g.x.PK.AutoIncr && f.Name == g.x.PK.Name {
 			continue
 		}
 		g.B.W("d.", f.Camel)
-		if i != len(g.x.Fs)-1 {
+		if i != len(g.x.Fields)-1 {
 			g.B.W(",")
 		}
 	}
@@ -476,7 +472,7 @@ func (g *gen) genUniFindByPk() {
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
 	g.B.W("row := db.DB().QueryRow(`select ")
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if i > 0 {
 			g.B.W(", ")
 		}
@@ -487,7 +483,7 @@ func (g *gen) genUniFindByPk() {
 	// temp variables
 	vm := map[string]string{}
 
-	for _, f := range g.x.Fs {
+	for _, f := range g.x.Fields {
 		n := util.LowerFirstLetter(f.Camel)
 
 		if n == "type" {
@@ -505,7 +501,7 @@ func (g *gen) genUniFindByPk() {
 	}
 
 	g.B.Ln().W("if err := row.Scan(")
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if i > 0 {
 			g.B.W(", ")
 		}
@@ -516,7 +512,7 @@ func (g *gen) genUniFindByPk() {
 	g.B.WL2("}")
 
 	g.B.WL("d := ", g.T, "{}")
-	for _, f := range g.x.Fs {
+	for _, f := range g.x.Fields {
 		g.B.W("d.", f.Camel, "=", util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
 	}
 
@@ -534,24 +530,24 @@ func (g *gen) genUpdateByPK() *Buf {
 	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(d *", g.T, ") (int64, error) {")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	g.B.W("r,err:=db.DB().Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if f.Name == g.x.PK.Name {
 			continue
 		}
 		g.B.W(f.Name, " = ?")
-		if i != len(g.x.Fs)-1 {
+		if i != len(g.x.Fields)-1 {
 			g.B.W(", ")
 		}
 	}
 	g.B.W(" where ", g.x.PK.Name, " = ?`, ")
 
 	// params
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if f.Name == g.x.PK.Name {
 			continue
 		}
 		g.B.W("d.", f.Camel)
-		if i != len(g.x.Fs)-1 {
+		if i != len(g.x.Fields)-1 {
 			g.B.W(", ")
 		}
 	}
@@ -653,7 +649,7 @@ func (g *gen) genFindByIndex(args []*parse.F) {
 
 	// make query sel
 	g.B.W("query := `select ")
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if i > 0 {
 			g.B.W(", ")
 		}
@@ -703,7 +699,7 @@ func (g *gen) genFindByIndex(args []*parse.F) {
 	// temp variables
 	vm := map[string]string{}
 
-	for _, f := range g.x.Fs {
+	for _, f := range g.x.Fields {
 		n := util.LowerFirstLetter(f.Camel)
 
 		if n == "type" {
@@ -729,7 +725,7 @@ func (g *gen) genFindByIndex(args []*parse.F) {
 	g.B.WL("for rows.Next(){")
 
 	g.B.W("if err = rows.Scan(")
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if i > 0 {
 			g.B.W(", ")
 		}
@@ -740,7 +736,7 @@ func (g *gen) genFindByIndex(args []*parse.F) {
 	g.B.WL2("}")
 
 	g.B.WL("d := ", g.T, "{}")
-	for _, f := range g.x.Fs {
+	for _, f := range g.x.Fields {
 		g.B.W("d.", f.Camel, "=", util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
 	}
 
@@ -776,7 +772,7 @@ func (g *gen) genFindByMultiJoin() {
 
 	// make query sel
 	g.B.W("query := `select ")
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if i > 0 {
 			g.B.W(", ")
 		}
@@ -847,7 +843,7 @@ func (g *gen) genFindByMultiJoin() {
 		"limit":  true,
 	}
 
-	for _, f := range g.x.Fs {
+	for _, f := range g.x.Fields {
 		n := util.LowerFirstLetter(f.Camel)
 
 		if n == "type" {
@@ -869,7 +865,7 @@ func (g *gen) genFindByMultiJoin() {
 	g.B.WL("for rows.Next() {")
 
 	g.B.W("if err = rows.Scan(")
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if i > 0 {
 			g.B.W(", ")
 		}
@@ -880,7 +876,7 @@ func (g *gen) genFindByMultiJoin() {
 	g.B.WL2("}")
 
 	g.B.WL("d := ", g.T, "{}")
-	for _, f := range g.x.Fs {
+	for _, f := range g.x.Fields {
 		g.B.W("d.", f.Camel, "=")
 		g.B.W(util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
 	}
@@ -908,7 +904,7 @@ func (g *gen) genCountByMultiJoin() {
 
 	// make query sel
 	g.B.W("query := `select count(1) from (select ")
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if i > 0 {
 			g.B.W(", ")
 		}
@@ -970,7 +966,7 @@ func (g *gen) genFindByCond() {
 
 	// make query sel
 	g.B.W("query := `select ")
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if i > 0 {
 			g.B.W(", ")
 		}
@@ -1027,7 +1023,7 @@ func (g *gen) genFindByCond() {
 		"limit":  true,
 	}
 
-	for _, f := range g.x.Fs {
+	for _, f := range g.x.Fields {
 		n := util.LowerFirstLetter(f.Camel)
 
 		if n == "type" {
@@ -1049,7 +1045,7 @@ func (g *gen) genFindByCond() {
 	g.B.WL("for rows.Next() {")
 
 	g.B.W("if err = rows.Scan(")
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if i > 0 {
 			g.B.W(", ")
 		}
@@ -1060,7 +1056,7 @@ func (g *gen) genFindByCond() {
 	g.B.WL2("}")
 
 	g.B.WL("d := ", g.T, "{}")
-	for _, f := range g.x.Fs {
+	for _, f := range g.x.Fields {
 		g.B.W("d.", f.Camel, "=", util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
 	}
 
@@ -1085,7 +1081,7 @@ func (g *gen) genFindAllByCond() {
 
 	// make query sel
 	g.B.W("query := `select ")
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if i > 0 {
 			g.B.W(", ")
 		}
@@ -1139,7 +1135,7 @@ func (g *gen) genFindAllByCond() {
 		"limit":  true,
 	}
 
-	for _, f := range g.x.Fs {
+	for _, f := range g.x.Fields {
 		n := util.LowerFirstLetter(f.Camel)
 
 		if n == "type" {
@@ -1161,7 +1157,7 @@ func (g *gen) genFindAllByCond() {
 	g.B.WL("for rows.Next() {")
 
 	g.B.W("if err = rows.Scan(")
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if i > 0 {
 			g.B.W(", ")
 		}
@@ -1172,7 +1168,7 @@ func (g *gen) genFindAllByCond() {
 	g.B.WL2("}")
 
 	g.B.WL("d := ", g.T, "{}")
-	for _, f := range g.x.Fs {
+	for _, f := range g.x.Fields {
 		g.B.W("d.", f.Camel, "=", util.DerefNilSqlType(vm[f.Camel], f.T)).Ln()
 	}
 

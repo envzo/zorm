@@ -55,7 +55,7 @@ func (p *parser) parse() (*X, error) {
 		Engine:  p.d.Engine,
 		DB:      p.d.DB,
 		TB:      p.d.TB,
-		Fs:      []*F{},
+		Fields:  []*F{},
 		Comment: p.d.Comment,
 	}
 
@@ -70,7 +70,7 @@ func (p *parser) parse() (*X, error) {
 		if err != nil {
 			return nil, err
 		}
-		x.Fs = append(x.Fs, f)
+		x.Fields = append(x.Fields, f)
 	}
 
 	idx, err := p.parseIndex(p.d.Indexes)

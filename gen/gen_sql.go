@@ -13,7 +13,7 @@ func genSql(x *parse.X) string {
 
 	b.WL2("use ", x.DB, ";")
 	b.W("create table if not exists `", x.TB, "` (").Ln()
-	for i, v := range x.Fs {
+	for i, v := range x.Fields {
 		b.W("  `", v.Name, "` ")
 		b.W(util.SqlTypeName(v.T))
 
@@ -34,7 +34,7 @@ func genSql(x *parse.X) string {
 			b.W(" comment '" + v.Comment + "'")
 		}
 
-		if i != len(x.Fs)-1 {
+		if i != len(x.Fields)-1 {
 			b.W(",").Ln()
 		}
 	}
