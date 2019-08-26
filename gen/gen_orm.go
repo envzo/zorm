@@ -597,7 +597,7 @@ func (g *gen) _genUpdateByPK(isTx bool) *Buf {
 		g.B.W("r,err := db.DB().Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
 	}
 
-	for i, f := range g.x.Fs {
+	for i, f := range g.x.Fields {
 		if f.Name == g.x.PK.Name {
 			continue
 		}
