@@ -59,9 +59,9 @@ func (mgr *_PodUserMgr) IsNicknameMobilePhoneExists(nickname string, mobilePhone
 	return c.Int64 > 0, nil
 }
 
-func (mgr *_PodUserMgr) TxIsNicknameMobilePhoneExists(nickname string, mobilePhone string) (bool, error) {
+func (mgr *_PodUserMgr) TxIsNicknameMobilePhoneExists(ztx *Ztx, nickname string, mobilePhone string) (bool, error) {
 	util.Log(`pod.pod_user`, `TxIsNicknameMobilePhoneExists`)
-	row := Zotx.QueryRow(`select count(1) from pod.pod_user where nickname = ? and mobile_phone = ?`,
+	row := ztx.QueryRow(`select count(1) from pod.pod_user where nickname = ? and mobile_phone = ?`,
 		nickname, mobilePhone)
 
 	var c sql.NullInt64
@@ -110,9 +110,9 @@ func (mgr *_PodUserMgr) UniFindByNicknameMobilePhone(nickname string, mobilePhon
 	return &d, nil
 }
 
-func (mgr *_PodUserMgr) TxUniFindByNicknameMobilePhone(nickname string, mobilePhone string) (*PodUser, error) {
+func (mgr *_PodUserMgr) TxUniFindByNicknameMobilePhone(ztx *Ztx, nickname string, mobilePhone string) (*PodUser, error) {
 	util.Log(`pod.pod_user`, `TxUniFindByNicknameMobilePhone`)
-	row := Zotx.QueryRow(`select id, nickname, password, age, mobile_phone, sequence, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where nickname = ? and mobile_phone = ?`,
+	row := ztx.QueryRow(`select id, nickname, password, age, mobile_phone, sequence, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where nickname = ? and mobile_phone = ?`,
 		nickname, mobilePhone)
 
 	var id sql.NullInt64
@@ -161,9 +161,9 @@ func (mgr *_PodUserMgr) UpdateByNicknameMobilePhone(d *PodUser) (int64, error) {
 	return n, nil
 }
 
-func (mgr *_PodUserMgr) TxUpdateByNicknameMobilePhone(d *PodUser) (int64, error) {
+func (mgr *_PodUserMgr) TxUpdateByNicknameMobilePhone(ztx *Ztx, d *PodUser) (int64, error) {
 	util.Log(`pod.pod_user`, `TxUpdateByNicknameMobilePhone`)
-	r, err := Zotx.Exec(`update pod.pod_user set password = ?, age = ?, sequence = ?, create_dt = ?, is_blocked = ?, update_dt = ?, stats_dt = ?, dt = ? where nickname = ? and mobile_phone = ?`, d.Password, d.Age, d.Sequence, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Dt, d.Nickname, d.MobilePhone)
+	r, err := ztx.Exec(`update pod.pod_user set password = ?, age = ?, sequence = ?, create_dt = ?, is_blocked = ?, update_dt = ?, stats_dt = ?, dt = ? where nickname = ? and mobile_phone = ?`, d.Password, d.Age, d.Sequence, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Dt, d.Nickname, d.MobilePhone)
 	if err != nil {
 		return 0, err
 	}
@@ -189,9 +189,9 @@ func (mgr *_PodUserMgr) UniRmByNicknameMobilePhone(d *PodUser) (int64, error) {
 	return n, nil
 }
 
-func (mgr *_PodUserMgr) TxUniRmByNicknameMobilePhone(d *PodUser) (int64, error) {
+func (mgr *_PodUserMgr) TxUniRmByNicknameMobilePhone(ztx *Ztx, d *PodUser) (int64, error) {
 	util.Log(`pod.pod_user`, `TxUniRmByNicknameMobilePhone`)
-	r, err := Zotx.Exec(`delete from pod.pod_user where nickname = ? and mobile_phone = ?`, d.Nickname, d.MobilePhone)
+	r, err := ztx.Exec(`delete from pod.pod_user where nickname = ? and mobile_phone = ?`, d.Nickname, d.MobilePhone)
 	if err != nil {
 		return 0, err
 	}
@@ -217,9 +217,9 @@ func (mgr *_PodUserMgr) IsMobilePhoneExists(mobilePhone string) (bool, error) {
 	return c.Int64 > 0, nil
 }
 
-func (mgr *_PodUserMgr) TxIsMobilePhoneExists(mobilePhone string) (bool, error) {
+func (mgr *_PodUserMgr) TxIsMobilePhoneExists(ztx *Ztx, mobilePhone string) (bool, error) {
 	util.Log(`pod.pod_user`, `TxIsMobilePhoneExists`)
-	row := Zotx.QueryRow(`select count(1) from pod.pod_user where mobile_phone = ?`,
+	row := ztx.QueryRow(`select count(1) from pod.pod_user where mobile_phone = ?`,
 		mobilePhone)
 
 	var c sql.NullInt64
@@ -268,9 +268,9 @@ func (mgr *_PodUserMgr) UniFindByMobilePhone(mobilePhone string) (*PodUser, erro
 	return &d, nil
 }
 
-func (mgr *_PodUserMgr) TxUniFindByMobilePhone(mobilePhone string) (*PodUser, error) {
+func (mgr *_PodUserMgr) TxUniFindByMobilePhone(ztx *Ztx, mobilePhone string) (*PodUser, error) {
 	util.Log(`pod.pod_user`, `TxUniFindByMobilePhone`)
-	row := Zotx.QueryRow(`select id, nickname, password, age, mobile_phone, sequence, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where mobile_phone = ?`,
+	row := ztx.QueryRow(`select id, nickname, password, age, mobile_phone, sequence, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where mobile_phone = ?`,
 		mobilePhone)
 
 	var id sql.NullInt64
@@ -319,9 +319,9 @@ func (mgr *_PodUserMgr) UpdateByMobilePhone(d *PodUser) (int64, error) {
 	return n, nil
 }
 
-func (mgr *_PodUserMgr) TxUpdateByMobilePhone(d *PodUser) (int64, error) {
+func (mgr *_PodUserMgr) TxUpdateByMobilePhone(ztx *Ztx, d *PodUser) (int64, error) {
 	util.Log(`pod.pod_user`, `TxUpdateByMobilePhone`)
-	r, err := Zotx.Exec(`update pod.pod_user set password = ?, age = ?, sequence = ?, create_dt = ?, is_blocked = ?, update_dt = ?, stats_dt = ?, dt = ? where mobile_phone = ?`, d.Password, d.Age, d.Sequence, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Dt, d.MobilePhone)
+	r, err := ztx.Exec(`update pod.pod_user set password = ?, age = ?, sequence = ?, create_dt = ?, is_blocked = ?, update_dt = ?, stats_dt = ?, dt = ? where mobile_phone = ?`, d.Password, d.Age, d.Sequence, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Dt, d.MobilePhone)
 	if err != nil {
 		return 0, err
 	}
@@ -347,9 +347,9 @@ func (mgr *_PodUserMgr) UniRmByMobilePhone(d *PodUser) (int64, error) {
 	return n, nil
 }
 
-func (mgr *_PodUserMgr) TxUniRmByMobilePhone(d *PodUser) (int64, error) {
+func (mgr *_PodUserMgr) TxUniRmByMobilePhone(ztx *Ztx, d *PodUser) (int64, error) {
 	util.Log(`pod.pod_user`, `TxUniRmByMobilePhone`)
-	r, err := Zotx.Exec(`delete from pod.pod_user where mobile_phone = ?`, d.MobilePhone)
+	r, err := ztx.Exec(`delete from pod.pod_user where mobile_phone = ?`, d.MobilePhone)
 	if err != nil {
 		return 0, err
 	}
@@ -426,7 +426,7 @@ func (mgr *_PodUserMgr) FindByCreateDt(createDt int64, order []string, offset, l
 	return ret, nil
 }
 
-func (mgr *_PodUserMgr) TxFindByCreateDt(createDt int64, order []string, offset, limit int64) ([]*PodUser, error) {
+func (mgr *_PodUserMgr) TxFindByCreateDt(ztx *Ztx, createDt int64, order []string, offset, limit int64) ([]*PodUser, error) {
 	util.Log(`pod.pod_user`, `TxFindByCreateDt`)
 	query := `select id, nickname, password, age, mobile_phone, sequence, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where create_dt = ?`
 	for i, o := range order {
@@ -448,7 +448,7 @@ func (mgr *_PodUserMgr) TxFindByCreateDt(createDt int64, order []string, offset,
 		query += fmt.Sprintf(" limit %d, %d", offset, limit)
 	}
 
-	rows, err := Zotx.Query(query, createDt)
+	rows, err := ztx.Query(query, createDt)
 	if err != nil {
 		return nil, err
 	}
@@ -506,10 +506,10 @@ func (mgr *_PodUserMgr) CountByCreateDt(createDt int64) (int64, error) {
 	return c.Int64, nil
 }
 
-func (mgr *_PodUserMgr) TxCountByCreateDt(createDt int64) (int64, error) {
+func (mgr *_PodUserMgr) TxCountByCreateDt(ztx *Ztx, createDt int64) (int64, error) {
 	util.Log(`pod.pod_user`, `TxCountByCreateDt`)
 	query := `select count(1) from pod.pod_user where create_dt = ?`
-	row := Zotx.QueryRow(query, createDt)
+	row := ztx.QueryRow(query, createDt)
 
 	var c sql.NullInt64
 
@@ -586,7 +586,7 @@ func (mgr *_PodUserMgr) FindByUpdateDt(updateDt int64, order []string, offset, l
 	return ret, nil
 }
 
-func (mgr *_PodUserMgr) TxFindByUpdateDt(updateDt int64, order []string, offset, limit int64) ([]*PodUser, error) {
+func (mgr *_PodUserMgr) TxFindByUpdateDt(ztx *Ztx, updateDt int64, order []string, offset, limit int64) ([]*PodUser, error) {
 	util.Log(`pod.pod_user`, `TxFindByUpdateDt`)
 	query := `select id, nickname, password, age, mobile_phone, sequence, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where update_dt = ?`
 	for i, o := range order {
@@ -608,7 +608,7 @@ func (mgr *_PodUserMgr) TxFindByUpdateDt(updateDt int64, order []string, offset,
 		query += fmt.Sprintf(" limit %d, %d", offset, limit)
 	}
 
-	rows, err := Zotx.Query(query, updateDt)
+	rows, err := ztx.Query(query, updateDt)
 	if err != nil {
 		return nil, err
 	}
@@ -666,10 +666,10 @@ func (mgr *_PodUserMgr) CountByUpdateDt(updateDt int64) (int64, error) {
 	return c.Int64, nil
 }
 
-func (mgr *_PodUserMgr) TxCountByUpdateDt(updateDt int64) (int64, error) {
+func (mgr *_PodUserMgr) TxCountByUpdateDt(ztx *Ztx, updateDt int64) (int64, error) {
 	util.Log(`pod.pod_user`, `TxCountByUpdateDt`)
 	query := `select count(1) from pod.pod_user where update_dt = ?`
-	row := Zotx.QueryRow(query, updateDt)
+	row := ztx.QueryRow(query, updateDt)
 
 	var c sql.NullInt64
 
@@ -771,7 +771,7 @@ func (mgr *_PodUserMgr) FindByMultiJoin(joins []db.Join, where []db.Rule, order 
 	return ret, nil
 }
 
-func (mgr *_PodUserMgr) TxFindByMultiJoin(joins []db.Join, where []db.Rule, order []string, offset, limit int64) ([]*PodUser, error) {
+func (mgr *_PodUserMgr) TxFindByMultiJoin(ztx *Ztx, joins []db.Join, where []db.Rule, order []string, offset, limit int64) ([]*PodUser, error) {
 	util.Log(`pod.pod_user`, `TxFindByMultiJoin`)
 	var params []interface{}
 
@@ -818,7 +818,7 @@ func (mgr *_PodUserMgr) TxFindByMultiJoin(joins []db.Join, where []db.Rule, orde
 		query += fmt.Sprintf(" limit %d, %d", offset, limit)
 	}
 
-	rows, err := Zotx.Query(query, params...)
+	rows, err := ztx.Query(query, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -905,8 +905,8 @@ func (mgr *_PodUserMgr) FindByJoin(t string, on, where []db.Rule, order []string
 		{T: t, Rule: on},
 	}, where, order, offset, limit)
 }
-func (mgr *_PodUserMgr) TxFindByJoin(t string, on, where []db.Rule, order []string, offset, limit int64) ([]*PodUser, error) {
-	return mgr.TxFindByMultiJoin([]db.Join{
+func (mgr *_PodUserMgr) TxFindByJoin(ztx *Ztx, t string, on, where []db.Rule, order []string, offset, limit int64) ([]*PodUser, error) {
+	return mgr.TxFindByMultiJoin(ztx, []db.Join{
 		{T: t, Rule: on},
 	}, where, order, offset, limit)
 }
@@ -944,6 +944,81 @@ func (mgr *_PodUserMgr) FindByCond(where []db.Rule, order []string, offset, limi
 	}
 
 	rows, err := db.DB().Query(query, params...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var id sql.NullInt64
+	var nickname sql.NullString
+	var password sql.NullString
+	var age sql.NullInt64
+	var mobilePhone sql.NullString
+	var sequence sql.NullInt64
+	var createDt sql.NullInt64
+	var isBlocked sql.NullBool
+	var updateDt sql.NullInt64
+	var statsDt sql.NullString
+	var dt sql.NullString
+
+	var ret []*PodUser
+
+	for rows.Next() {
+		if err = rows.Scan(&id, &nickname, &password, &age, &mobilePhone, &sequence, &createDt, &isBlocked, &updateDt, &statsDt, &dt); err != nil {
+			return nil, err
+		}
+
+		d := PodUser{}
+		d.Id = id.Int64
+		d.Nickname = nickname.String
+		d.Password = password.String
+		d.Age = int32(age.Int64)
+		d.MobilePhone = mobilePhone.String
+		d.Sequence = sequence.Int64
+		d.CreateDt = createDt.Int64
+		d.IsBlocked = isBlocked.Bool
+		d.UpdateDt = updateDt.Int64
+		d.StatsDt = util.SafeParseDateStr(statsDt.String)
+		d.Dt = util.SafeParseDateTimeStr(dt.String)
+		ret = append(ret, &d)
+	}
+	return ret, nil
+}
+
+func (mgr *_PodUserMgr) TxFindByCond(ztx *Ztx, where []db.Rule, order []string, offset, limit int64) ([]*PodUser, error) {
+	util.Log(`pod.pod_user`, `TxFindByCond`)
+	var params []interface{}
+
+	query := `select id, nickname, password, age, mobile_phone, sequence, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where `
+	for i, v := range where {
+		if i > 0 {
+			query += " and "
+		}
+		query += v.S
+		if v.P != nil {
+			params = append(params, v.P)
+		}
+	}
+	for i, o := range order {
+		if i == 0 {
+			query += " order by "
+		} else {
+			query += ", "
+		}
+		if strings.HasPrefix(o, "-") {
+			query += o[1:]
+		} else {
+			query += o
+		}
+		if o[0] == '-' {
+			query += " desc"
+		}
+	}
+	if offset != -1 && limit != -1 {
+		query += fmt.Sprintf(" limit %d, %d", offset, limit)
+	}
+
+	rows, err := ztx.Query(query, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -1074,9 +1149,9 @@ func (mgr *_PodUserMgr) Create(d *PodUser) error {
 	return nil
 }
 
-func (mgr *_PodUserMgr) TxCreate(d *PodUser) error {
+func (mgr *_PodUserMgr) TxCreate(ztx *Ztx, d *PodUser) error {
 	util.Log(`pod.pod_user`, `TxCreate`)
-	r, err := Zotx.Exec(`insert into pod.pod_user (nickname, password, age, mobile_phone, sequence, create_dt, is_blocked, update_dt, stats_dt, dt) value (?,?,?,?,?,?,?,?,?,?)`, d.Nickname, d.Password, d.Age, d.MobilePhone, d.Sequence, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Dt)
+	r, err := ztx.Exec(`insert into pod.pod_user (nickname, password, age, mobile_phone, sequence, create_dt, is_blocked, update_dt, stats_dt, dt) value (?,?,?,?,?,?,?,?,?,?)`, d.Nickname, d.Password, d.Age, d.MobilePhone, d.Sequence, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Dt)
 	if err != nil {
 		return err
 	}
@@ -1124,6 +1199,33 @@ func (mgr *_PodUserMgr) CountByRule(rules ...db.Rule) (int64, error) {
 	return c.Int64, nil
 }
 
+func (mgr *_PodUserMgr) TxCountByRule(ztx *Ztx, rules ...db.Rule) (int64, error) {
+	util.Log(`pod.pod_user`, `TxCountByRule`)
+	var p []interface{}
+	query := `select count(1) from pod.pod_user where `
+	for i, rule := range rules {
+		if i > 0 {
+			query += " and "
+		}
+		query += rule.S
+		if rule.P != nil {
+			p = append(p, rule.P)
+		}
+
+	}
+
+	row := ztx.QueryRow(query, p...)
+
+	var c sql.NullInt64
+
+	if err := row.Scan(&c); err != nil {
+		return 0, err
+	}
+
+	util.Log(`pod.pod_user`, `TxCountByRule ... done`)
+	return c.Int64, nil
+}
+
 func (mgr *_PodUserMgr) RmByRule(rules ...db.Rule) (int64, error) {
 	util.Log(`pod.pod_user`, `RmByRule`)
 	query := "delete from pod.pod_user where "
@@ -1146,7 +1248,7 @@ func (mgr *_PodUserMgr) RmByRule(rules ...db.Rule) (int64, error) {
 	util.Log(`pod.pod_user`, `RmByRule ... done`)
 	return n, nil
 }
-func (mgr *_PodUserMgr) TxRmByRule(rules ...db.Rule) (int64, error) {
+func (mgr *_PodUserMgr) TxRmByRule(ztx *Ztx, rules ...db.Rule) (int64, error) {
 	util.Log(`pod.pod_user`, `TxRmByRule`)
 	query := "delete from pod.pod_user where "
 	var p []interface{}
@@ -1157,7 +1259,7 @@ func (mgr *_PodUserMgr) TxRmByRule(rules ...db.Rule) (int64, error) {
 		query += r.S
 		p = append(p, r.P)
 	}
-	r, err := Zotx.Exec(query, p...)
+	r, err := ztx.Exec(query, p...)
 	if err != nil {
 		return 0, err
 	}
@@ -1204,9 +1306,9 @@ func (mgr *_PodUserMgr) UniFindByPK(id int64) (*PodUser, error) {
 	return &d, nil
 }
 
-func (mgr *_PodUserMgr) TxUniFindByPK(id int64) (*PodUser, error) {
+func (mgr *_PodUserMgr) TxUniFindByPK(ztx *Ztx, id int64) (*PodUser, error) {
 	util.Log(`pod.pod_user`, `TxUniFindByPK`)
-	row := Zotx.QueryRow(`select id, nickname, password, age, mobile_phone, sequence, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where id = ?`, id)
+	row := ztx.QueryRow(`select id, nickname, password, age, mobile_phone, sequence, create_dt, is_blocked, update_dt, stats_dt, dt from pod.pod_user where id = ?`, id)
 
 	var id_1 sql.NullInt64
 	var nickname sql.NullString
@@ -1254,9 +1356,9 @@ func (mgr *_PodUserMgr) Update(d *PodUser) (int64, error) {
 	return n, nil
 }
 
-func (mgr *_PodUserMgr) TxUpdate(d *PodUser) (int64, error) {
+func (mgr *_PodUserMgr) TxUpdate(ztx *Ztx, d *PodUser) (int64, error) {
 	util.Log(`pod.pod_user`, `TxUpdate`)
-	r, err := Zotx.Exec(`update pod.pod_user set nickname = ?, password = ?, age = ?, mobile_phone = ?, sequence = ?, create_dt = ?, is_blocked = ?, update_dt = ?, stats_dt = ?, dt = ? where id = ?`, d.Nickname, d.Password, d.Age, d.MobilePhone, d.Sequence, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Dt, d.Id)
+	r, err := ztx.Exec(`update pod.pod_user set nickname = ?, password = ?, age = ?, mobile_phone = ?, sequence = ?, create_dt = ?, is_blocked = ?, update_dt = ?, stats_dt = ?, dt = ? where id = ?`, d.Nickname, d.Password, d.Age, d.MobilePhone, d.Sequence, d.CreateDt, d.IsBlocked, d.UpdateDt, d.StatsDt, d.Dt, d.Id)
 	if err != nil {
 		return 0, err
 	}
@@ -1282,10 +1384,10 @@ func (mgr *_PodUserMgr) RmByPK(pk int64) (int64, error) {
 	util.Log(`pod.pod_user`, `RmByPK ... done`)
 	return n, nil
 }
-func (mgr *_PodUserMgr) TxRmByPK(pk int64) (int64, error) {
+func (mgr *_PodUserMgr) TxRmByPK(ztx *Ztx, pk int64) (int64, error) {
 	util.Log(`pod.pod_user`, `TxRmByPK`)
 	query := "delete from pod.pod_user where id = ?"
-	r, err := Zotx.Exec(query, pk)
+	r, err := ztx.Exec(query, pk)
 	if err != nil {
 		return 0, err
 	}

@@ -10,15 +10,16 @@ type Ztx struct {
 	tx *sql.Tx
 }
 
-var Zotx = &Ztx{}
-
-func (ztx *Ztx) Begin() error {
-	txTest, err := db.DB().Begin()
+func (ztx *Ztx) Begin() (*Ztx, error) {
+	tx, err := db.DB().Begin()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	ztx.tx = txTest
-	return nil
+
+	txEntity := &Ztx{}
+	txEntity.tx = tx
+
+	return txEntity, nil
 }
 
 func (ztx *Ztx) Stmt(stmt *sql.Stmt) *sql.Stmt {
