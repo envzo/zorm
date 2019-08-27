@@ -161,7 +161,7 @@ func (g *gen) genTxIsExists(args []*parse.F) {
 	}
 	m.WriteString("Exists")
 
-	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(")
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(ztx *Ztx, ")
 
 	for i, f := range args {
 		if i > 0 {
@@ -179,7 +179,7 @@ func (g *gen) genTxIsExists(args []*parse.F) {
 	g.B.Spc().W("(bool, error)").WL("{")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
-	g.B.W("row := Zotx.QueryRow(`select count(1) from ", g.x.DB, ".", g.x.TB, " where ")
+	g.B.W("row := ztx.QueryRow(`select count(1) from ", g.x.DB, ".", g.x.TB, " where ")
 
 	for i, f := range args {
 		if i > 0 {
@@ -332,7 +332,7 @@ func (g *gen) genTxUniFind(args []*parse.F) {
 		m.WriteString(f.Camel)
 	}
 
-	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(")
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(ztx *Ztx, ")
 
 	for i, f := range args {
 		if i > 0 {
@@ -350,7 +350,7 @@ func (g *gen) genTxUniFind(args []*parse.F) {
 	g.B.Spc().W("(*" + g.T + ", error)").WL("{")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
-	g.B.W("row := Zotx.QueryRow(`select ")
+	g.B.W("row := ztx.QueryRow(`select ")
 	for i, f := range g.x.Fs {
 		if i > 0 {
 			g.B.W(", ")
@@ -515,10 +515,10 @@ func (g *gen) genTxUniUpdate(args []*parse.F) {
 		m.WriteString(f.Camel)
 	}
 
-	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(d *", g.T, ")")
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(ztx *Ztx, d *", g.T, ")")
 	g.B.Spc().W("(int64, error) ").WL("{")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
-	g.B.W("r,err := Zotx.Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
+	g.B.W("r,err := ztx.Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
 	flag := false
 SetField:
 	for _, f := range g.x.Fs {
@@ -638,10 +638,10 @@ func (g *gen) genTxUniRm(args []*parse.F) {
 		m.WriteString(f.Camel)
 	}
 
-	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(d *", g.T, ")")
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(ztx *Ztx, d *", g.T, ")")
 	g.B.Spc().W("(int64, error) ").WL("{")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
-	g.B.W("r,err := Zotx.Exec(`delete from ", g.x.DB, ".", g.x.TB, " where ")
+	g.B.W("r,err := ztx.Exec(`delete from ", g.x.DB, ".", g.x.TB, " where ")
 
 	for i, f := range args {
 		if i > 0 {
@@ -744,14 +744,14 @@ func (g *gen) genTxCreate() *Buf {
 	var m bytes.Buffer
 	m.WriteString("TxCreate")
 
-	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(d *", g.T, ") error {")
+	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(ztx *Ztx, d *", g.T, ") error {")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	if g.x.PK != nil && g.x.PK.AutoIncr {
 		g.B.W("r, err")
 	} else {
 		g.B.W("_, err")
 	}
-	g.B.W(" := Zotx.Exec(`insert into ", g.x.DB, ".", g.x.TB, " (")
+	g.B.W(" := ztx.Exec(`insert into ", g.x.DB, ".", g.x.TB, " (")
 	cnt := 0
 	for i, f := range g.x.Fs {
 		if g.x.PK != nil && g.x.PK.AutoIncr && f.Name == g.x.PK.Name {
@@ -892,7 +892,7 @@ func (g *gen) genTxUniFindByPk() {
 	var m bytes.Buffer
 	m.WriteString("TxUniFindByPK")
 
-	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(", util.LowerFirstLetter(g.x.PK.Camel))
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(ztx *Ztx, ", util.LowerFirstLetter(g.x.PK.Camel))
 
 	if g.x.PK.T == cls.YamlTimestamp { // it is convenient to use integer when querying
 		g.B.Spc().W(util.I64)
@@ -903,7 +903,7 @@ func (g *gen) genTxUniFindByPk() {
 	g.B.Spc().W("(*" + g.T + ", error)").WL("{")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
-	g.B.W("row := Zotx.QueryRow(`select ")
+	g.B.W("row := ztx.QueryRow(`select ")
 	for i, f := range g.x.Fs {
 		if i > 0 {
 			g.B.W(", ")
@@ -1001,9 +1001,9 @@ func (g *gen) genTxUpdateByPK() *Buf {
 	var m bytes.Buffer
 	m.WriteString("TxUpdate")
 
-	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(d *", g.T, ") (int64, error) {")
+	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(ztx *Ztx, d *", g.T, ") (int64, error) {")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
-	g.B.W("r,err:=Zotx.Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
+	g.B.W("r,err:=ztx.Exec(`update ", g.x.DB, ".", g.x.TB, " set ")
 	for i, f := range g.x.Fs {
 		if f.Name == g.x.PK.Name {
 			continue
@@ -1043,11 +1043,11 @@ func (g *gen) genTxRmByPK() {
 	var m bytes.Buffer
 	m.WriteString("TxRmByPK")
 
-	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(pk ", g.x.PK.GoT, ") (int64, error) {")
+	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(ztx *Ztx, pk ", g.x.PK.GoT, ") (int64, error) {")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	g.B.WL(`query := "delete from `, g.x.DB, ".", g.x.TB, " where ", g.x.PK.Name, ` = ?"`)
 
-	g.B.WL("r,err := Zotx.Exec(query, pk)")
+	g.B.WL("r,err := ztx.Exec(query, pk)")
 	g.B.WL("if err != nil {")
 	g.B.WL("return 0, err")
 	g.B.WL("}")
@@ -1123,7 +1123,7 @@ func (g *gen) genTxRmByRule() {
 	var m bytes.Buffer
 	m.WriteString("TxRmByRule")
 
-	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(rules ...db.Rule) (int64, error) {")
+	g.B.WL("func (mgr *_", g.T, "Mgr) ", m.String(), "(ztx *Ztx, rules ...db.Rule) (int64, error) {")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 	g.B.WL(`query := "delete from `, g.x.DB, ".", g.x.TB, ` where "`)
 
@@ -1138,7 +1138,7 @@ func (g *gen) genTxRmByRule() {
 	g.B.WL(`	p = append(p, r.P)`)
 	g.B.WL(`}`)
 
-	g.B.WL("r,err := Zotx.Exec(query, p...)")
+	g.B.WL("r,err := ztx.Exec(query, p...)")
 	g.B.WL("if err != nil {")
 	g.B.WL("return 0, err")
 	g.B.WL("}")
@@ -1289,7 +1289,7 @@ func (g *gen) genTxFindByIndex(args []*parse.F) {
 		m.WriteString(f.Camel)
 	}
 
-	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(")
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(ztx *Ztx, ")
 
 	for i, arg := range args {
 		if i > 0 {
@@ -1343,7 +1343,7 @@ func (g *gen) genTxFindByIndex(args []*parse.F) {
 	g.B.WL2("}")
 	// end make query sql
 
-	g.B.W("rows, err := Zotx.Query(query, ")
+	g.B.W("rows, err := ztx.Query(query, ")
 	for i, f := range args {
 		if i > 0 {
 			g.B.W(", ")
@@ -1421,9 +1421,9 @@ func (g *gen) genFindByJoin() {
 }
 
 func (g *gen) genTxFindByJoin() {
-	g.B.W("func (mgr", " *_", g.T, "Mgr) TxFindByJoin(t string, on, where []db.Rule, order []string, offset, limit int64) ")
+	g.B.W("func (mgr", " *_", g.T, "Mgr) TxFindByJoin(ztx *Ztx, t string, on, where []db.Rule, order []string, offset, limit int64) ")
 	g.B.W("([]*" + g.T + ", error)").WL("{")
-	g.B.WL("return mgr.TxFindByMultiJoin([]db.Join{")
+	g.B.WL("return mgr.TxFindByMultiJoin(ztx, []db.Join{")
 	g.B.WL("	{T: t, Rule: on},")
 	g.B.WL("}, where, order, offset, limit)")
 	g.B.WL("}")
@@ -1565,7 +1565,7 @@ func (g *gen) genTxFindByMultiJoin() {
 	var m bytes.Buffer
 	m.WriteString("TxFindByMultiJoin")
 
-	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(joins []db.Join, where []db.Rule, order []string, offset, limit int64)")
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(ztx *Ztx, joins []db.Join, where []db.Rule, order []string, offset, limit int64)")
 	g.B.Spc().W("([]*" + g.T + ", error)").WL("{")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
@@ -1626,7 +1626,7 @@ func (g *gen) genTxFindByMultiJoin() {
 	g.B.WL2("}")
 	// end make query sql
 
-	g.B.WL("rows, err := Zotx.Query(query, params...)")
+	g.B.WL("rows, err := ztx.Query(query, params...)")
 	g.B.WL("if err != nil {")
 	g.B.WL("return nil, err")
 	g.B.WL("}")
@@ -1872,7 +1872,7 @@ func (g *gen) genTxFindByCond() {
 	var m bytes.Buffer
 	m.WriteString("TxFindByCond")
 
-	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(where []db.Rule, order []string, offset, limit int64)")
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(ztx *Ztx, where []db.Rule, order []string, offset, limit int64)")
 	g.B.Spc().W("([]*" + g.T + ", error)").WL("{")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
@@ -1917,7 +1917,7 @@ func (g *gen) genTxFindByCond() {
 	g.B.WL2("}")
 	// end make query sql
 
-	g.B.WL("rows, err := Zotx.Query(query, params...)")
+	g.B.WL("rows, err := ztx.Query(query, params...)")
 	g.B.WL("if err != nil {")
 	g.B.WL("return nil, err")
 	g.B.WL("}")
@@ -2161,7 +2161,7 @@ func (g *gen) genTxCountByIndex(args []*parse.F) {
 		m.WriteString(f.Camel)
 	}
 
-	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(")
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(ztx *Ztx, ")
 
 	for i, arg := range args {
 		if i > 0 {
@@ -2191,7 +2191,7 @@ func (g *gen) genTxCountByIndex(args []*parse.F) {
 	g.B.WL("`")
 	// end make query sql
 
-	g.B.W("row := Zotx.QueryRow(query, ")
+	g.B.W("row := ztx.QueryRow(query, ")
 	for i, f := range args {
 		if i > 0 {
 			g.B.W(", ")
@@ -2253,7 +2253,7 @@ func (g *gen) genTxCountByRule() {
 	var m bytes.Buffer
 	m.WriteString("TxCountByRule")
 
-	g.B.WL("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(rules ...db.Rule) (int64, error) {")
+	g.B.WL("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(ztx *Ztx, rules ...db.Rule) (int64, error) {")
 	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
 
 	// make query sel
@@ -2271,7 +2271,7 @@ func (g *gen) genTxCountByRule() {
 
 	// end make query sql
 
-	g.B.WL2("row := Zotx.QueryRow(query, p...)")
+	g.B.WL2("row := ztx.QueryRow(query, p...)")
 
 	g.B.WL2("var c sql.NullInt64")
 

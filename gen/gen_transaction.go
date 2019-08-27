@@ -16,8 +16,6 @@ func genTransaction(file, folder, pkg string) error {
 
 	fn := filepath.Join(folder, base)
 
-
-
 	fset := token.NewFileSet()
 	fileAST, err := parser.ParseFile(fset, "", genTransactionFileString(pkg), parser.ParseComments)
 	if err != nil {
@@ -50,14 +48,16 @@ func genTransactionFileString(pkg string) []byte {
 	b.WL("	tx *sql.Tx")
 	b.WL("}")
 	b.WL("")
-	b.WL("var Zotx = &Ztx{}")
-	b.WL("func (ztx * Ztx) Begin() error {")
-	b.WL("	txTest, err := db.DB().Begin()")
+	b.WL("func TxBegin() (*Ztx, error) {")
+	b.WL("	tx, err := db.DB().Begin()")
 	b.WL("	if err != nil {")
-	b.WL("		return err")
+	b.WL("		return nil, err")
 	b.WL("	}")
-	b.WL("	ztx.tx = txTest")
-	b.WL("	return nil")
+	b.WL("")
+	b.WL("	txEntity := &Ztx{}")
+	b.WL("	txEntity.tx = tx")
+	b.WL("")
+	b.WL("	return txEntity, nil")
 	b.WL("}")
 	b.WL("")
 	b.WL("func (ztx *Ztx) Stmt(stmt *sql.Stmt) *sql.Stmt {")
@@ -108,7 +108,6 @@ func genTransactionFileString(pkg string) []byte {
 	b.WL("	return ztx.tx.Rollback()")
 	b.WL("}")
 	b.WL("")
-
 
 	return b.Bytes()
 }
