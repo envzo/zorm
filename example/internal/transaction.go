@@ -10,7 +10,7 @@ type Ztx struct {
 	tx *sql.Tx
 }
 
-func (ztx *Ztx) Begin() (*Ztx, error) {
+func TxBegin() (*Ztx, error) {
 	tx, err := db.DB().Begin()
 	if err != nil {
 		return nil, err
