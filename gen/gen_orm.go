@@ -73,6 +73,7 @@ func (g *gen) genORM(pkg string) []byte {
 	g.genFindByMultiJoin()
 	g.genTxFindByMultiJoin()
 	g.genCountByMultiJoin()
+	g.genTxCountByMultiJoin()
 	g.genFindByJoin()
 	g.genTxFindByJoin()
 	g.genFindByCond()
@@ -1704,7 +1705,7 @@ func (g *gen) genCountByMultiJoin() {
 	g.B.WL2("var params []interface{}")
 
 	// make query sel
-	g.B.W("query := `select count(1) from (select ")
+	g.B.W("query := `select count(1) from (select distinct ")
 	for i, f := range g.x.Fs {
 		if i > 0 {
 			g.B.W(", ")
@@ -1742,6 +1743,68 @@ func (g *gen) genCountByMultiJoin() {
 	// end make query sql
 
 	g.B.WL("row := db.DB().QueryRow(query, params...)")
+
+	g.B.WL("var c sql.NullInt64")
+	g.B.WL("if err := row.Scan(&c); err != nil {")
+	g.B.WL("return 0, err")
+	g.B.WL("}")
+
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), " ... done`)")
+
+	g.B.W("return c.Int64, nil")
+
+	g.B.WL2("}")
+}
+
+func (g *gen) genTxCountByMultiJoin() {
+	var m bytes.Buffer
+	m.WriteString("TxCountByMultiJoin")
+
+	g.B.W("func (mgr", " *_", g.T, "Mgr) ", m.String(), "(ztx *Ztx, joins []db.Join, where []db.Rule) ")
+	g.B.W("(int64, error)").WL("{")
+	g.B.WL("util.Log(`", g.x.DB, ".", g.x.TB, "`, `", m.String(), "`)")
+
+	g.B.WL2("var params []interface{}")
+
+	// make query sel
+	g.B.W("query := `select count(1) from (select distinct ")
+	for i, f := range g.x.Fs {
+		if i > 0 {
+			g.B.W(", ")
+		}
+		g.B.W(g.x.TB, ".", f.Name)
+	}
+	g.B.WL(" from ", g.x.DB, ".", g.x.TB, "`")
+
+	g.B.WL("for _, join := range joins {")
+	g.B.WL("query += ` join ", g.x.DB, ".` + ", "join.T + ` on `")
+	g.B.WL(`for i, v := range join.Rule {`)
+	g.B.WL(`	if i > 0 {`)
+	g.B.WL(`		query += " and "`)
+	g.B.WL(`	}`)
+	g.B.WL(`	query += v.S`)
+	g.B.WL(`	if v.P != nil {`)
+	g.B.WL(`		params = append(params, v.P)`)
+	g.B.WL(`	}`)
+	g.B.WL(`}`)
+	g.B.WL("}")
+
+	g.B.WL(`for i, v := range where {`)
+	g.B.WL(`	if i == 0 {`)
+	g.B.WL(`		query += " where "`)
+	g.B.WL(`	} else {`)
+	g.B.WL(`		query += " and "`)
+	g.B.WL(`	}`)
+	g.B.WL(`	query += v.S`)
+	g.B.WL(`	if v.P != nil {`)
+	g.B.WL(`		params = append(params, v.P)`)
+	g.B.WL(`	}`)
+	g.B.WL(`}`)
+	g.B.WL2(`query += ") t"`)
+
+	// end make query sql
+
+	g.B.WL("row := ztx.QueryRow(query, params...)")
 
 	g.B.WL("var c sql.NullInt64")
 	g.B.WL("if err := row.Scan(&c); err != nil {")

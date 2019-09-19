@@ -865,7 +865,7 @@ func (mgr *_PodUserMgr) CountByMultiJoin(joins []db.Join, where []db.Rule) (int6
 	util.Log(`pod.pod_user`, `CountByMultiJoin`)
 	var params []interface{}
 
-	query := `select count(1) from (select pod_user.id, pod_user.nickname, pod_user.password, pod_user.age, pod_user.mobile_phone, pod_user.sequence, pod_user.create_dt, pod_user.is_blocked, pod_user.update_dt, pod_user.stats_dt, pod_user.dt from pod.pod_user`
+	query := `select count(1) from (select distinct pod_user.id, pod_user.nickname, pod_user.password, pod_user.age, pod_user.mobile_phone, pod_user.sequence, pod_user.create_dt, pod_user.is_blocked, pod_user.update_dt, pod_user.stats_dt, pod_user.dt from pod.pod_user`
 	for _, join := range joins {
 		query += ` join pod.` + join.T + ` on `
 		for i, v := range join.Rule {
@@ -897,6 +897,45 @@ func (mgr *_PodUserMgr) CountByMultiJoin(joins []db.Join, where []db.Rule) (int6
 		return 0, err
 	}
 	util.Log(`pod.pod_user`, `CountByMultiJoin ... done`)
+	return c.Int64, nil
+}
+
+func (mgr *_PodUserMgr) TxCountByMultiJoin(ztx *Ztx, joins []db.Join, where []db.Rule) (int64, error) {
+	util.Log(`pod.pod_user`, `TxCountByMultiJoin`)
+	var params []interface{}
+
+	query := `select count(1) from (select distinct pod_user.id, pod_user.nickname, pod_user.password, pod_user.age, pod_user.mobile_phone, pod_user.sequence, pod_user.create_dt, pod_user.is_blocked, pod_user.update_dt, pod_user.stats_dt, pod_user.dt from pod.pod_user`
+	for _, join := range joins {
+		query += ` join pod.` + join.T + ` on `
+		for i, v := range join.Rule {
+			if i > 0 {
+				query += " and "
+			}
+			query += v.S
+			if v.P != nil {
+				params = append(params, v.P)
+			}
+		}
+	}
+	for i, v := range where {
+		if i == 0 {
+			query += " where "
+		} else {
+			query += " and "
+		}
+		query += v.S
+		if v.P != nil {
+			params = append(params, v.P)
+		}
+	}
+	query += ") t"
+
+	row := ztx.QueryRow(query, params...)
+	var c sql.NullInt64
+	if err := row.Scan(&c); err != nil {
+		return 0, err
+	}
+	util.Log(`pod.pod_user`, `TxCountByMultiJoin ... done`)
 	return c.Int64, nil
 }
 
