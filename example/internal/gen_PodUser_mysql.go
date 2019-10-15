@@ -687,7 +687,7 @@ func (mgr *_PodUserMgr) FindByMultiJoin(joins []db.Join, where []db.Rule, order 
 
 	query := `select distinct pod_user.id, pod_user.nickname, pod_user.password, pod_user.age, pod_user.mobile_phone, pod_user.sequence, pod_user.create_dt, pod_user.is_blocked, pod_user.update_dt, pod_user.stats_dt, pod_user.dt from pod.pod_user`
 	for _, join := range joins {
-		query += ` join pod.` + join.T + ` on `
+		query += string(join.JType) + ` join pod.` + join.T + ` on `
 		for i, v := range join.Rule {
 			if i > 0 {
 				query += " and "
@@ -777,7 +777,7 @@ func (mgr *_PodUserMgr) TxFindByMultiJoin(ztx *Ztx, joins []db.Join, where []db.
 
 	query := `select distinct pod_user.id, pod_user.nickname, pod_user.password, pod_user.age, pod_user.mobile_phone, pod_user.sequence, pod_user.create_dt, pod_user.is_blocked, pod_user.update_dt, pod_user.stats_dt, pod_user.dt from pod.pod_user`
 	for _, join := range joins {
-		query += ` join pod.` + join.T + ` on `
+		query += string(join.JType) + ` join pod.` + join.T + ` on `
 		for i, v := range join.Rule {
 			if i > 0 {
 				query += " and "
@@ -867,7 +867,7 @@ func (mgr *_PodUserMgr) CountByMultiJoin(joins []db.Join, where []db.Rule) (int6
 
 	query := `select count(1) from (select distinct pod_user.id, pod_user.nickname, pod_user.password, pod_user.age, pod_user.mobile_phone, pod_user.sequence, pod_user.create_dt, pod_user.is_blocked, pod_user.update_dt, pod_user.stats_dt, pod_user.dt from pod.pod_user`
 	for _, join := range joins {
-		query += ` join pod.` + join.T + ` on `
+		query += string(join.JType) + ` join pod.` + join.T + ` on `
 		for i, v := range join.Rule {
 			if i > 0 {
 				query += " and "
@@ -906,7 +906,7 @@ func (mgr *_PodUserMgr) TxCountByMultiJoin(ztx *Ztx, joins []db.Join, where []db
 
 	query := `select count(1) from (select distinct pod_user.id, pod_user.nickname, pod_user.password, pod_user.age, pod_user.mobile_phone, pod_user.sequence, pod_user.create_dt, pod_user.is_blocked, pod_user.update_dt, pod_user.stats_dt, pod_user.dt from pod.pod_user`
 	for _, join := range joins {
-		query += ` join pod.` + join.T + ` on `
+		query += string(join.JType) + ` join pod.` + join.T + ` on `
 		for i, v := range join.Rule {
 			if i > 0 {
 				query += " and "
