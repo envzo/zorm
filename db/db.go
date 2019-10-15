@@ -12,6 +12,19 @@ var (
 	db       *sql.DB
 )
 
+type JoinType string
+
+const (
+	// 内联
+	JoinTypeNone JoinType = ""
+	// 内联
+	JoinTypeInner JoinType = "inner"
+	// 左联
+	JoinTypeLeft JoinType = "left"
+	// 右联
+	JoinTypeRight JoinType = "right"
+)
+
 func Open(t, dsn string, openConn, idleConn int) error {
 	var err error
 	openOnce.Do(func() {
@@ -31,6 +44,7 @@ type Rule struct {
 }
 
 type Join struct {
-	T    string
-	Rule []Rule
+	T     string
+	Rule  []Rule
+	JType JoinType
 }
